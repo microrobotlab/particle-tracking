@@ -14,8 +14,8 @@ function save_data(result,vid_framerate,resultfilename)
             coords = result.blobs[i].trace[j]
             push!(blobid,i)
             push!(time,j/vid_framerate)
-            push!(coord_x,coords[1]) #invertiti??
-            push!(coord_y,coords[2])
+            push!(coord_x,coords[2]) #invertiti??
+            push!(coord_y,coords[1])
 
         end
     end

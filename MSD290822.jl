@@ -21,10 +21,11 @@ diamPart=1  # in microns
 D=(1.380649e-23*298)/(6π*1e-3*(diamPart*1e-6/2))*1e12     #um^2/s
 Dr=(1.380649e-23*298)/(8π*1e-3*(diamPart*1e-6/2)^3)
 tr=(Dr)^(-1)
-tm=tr*12
+framerate=12
+tm=tr*framerate
 tauMax=40 #floor(Int, tm)
 #---parameters for the filtering---
-ltrackmin=12 #track length> 1 sec 
+ltrackmin=framerate*5 #tauMax> 1 sec 
 displminpx=0.5 #medium displacement between two adiacents point > 1 pixel - filters out still particles (rumore su part che stanno ferme)
 jump=2 #max jump allowed between 2 frames
 #----------------------------------
@@ -38,7 +39,7 @@ df[!,:BlobID] = categorical(df[!,:BlobID],compress=true)
 gdf = groupby(df,:BlobID,sort=true)
 
 
-# filter out trajectories shorter than 1 sec (12 frames), the still ones, those with jumps and cut the scalebar
+# filter out trajectories shorter than 5 sec (12 frames), the still ones, those with jumps and cut the scalebar
 
 #---> Initialize Plot
 
@@ -61,6 +62,8 @@ for i in 1:length(gdf)
     end
 end
 
+print("n. of traks = ")
+println(length(gdf))
 print("n. of filtered traks = ")
 println(length(idx))
 
@@ -78,13 +81,13 @@ matrVy[1,:].=0.0
 for i in idx
     dx=diff(gdf[i][!,:x])
     dy=diff(gdf[i][!,:y])
-    matrVx[2:length(dx)+1,i]=dx*12
-    matrVy[2:length(dy)+1,i]=dy*12
+    matrVx[2:length(dx)+1,i]=dx*framerate
+    matrVy[2:length(dy)+1,i]=dy*framerate
 end
 Vx=vec(nanmean(matrVx, dims=2))
 Vy=vec(nanmean(matrVy, dims=2))
-Δx=cumsum(Vx/12)
-Δy=cumsum(Vy/12)
+Δx=cumsum(Vx/framerate)
+Δy=cumsum(Vy/framerate)
 plot(Δx)
 plot!(Δy)
 
@@ -112,8 +115,8 @@ end
 display(graphSDtrck)
 
 
-#---> Initialize Plot
-graphSDtrck =plot();
+#---> Initialize Plot track and corrected
+graphSDtrck_dc =plot(yflip=true);
 
 for i in idx
     ## Add column and fill it with data
@@ -121,13 +124,15 @@ for i in idx
     plot!(graphSDtrck, gdf[i][!,:x],gdf[i][!,:y], color=:green, legend=false, aspect_ratio = 1,framestyle = :box)         
 end
 
-display(graphSDtrck)
+display(graphSDtrck_dc)
 
 
 function MSDfun(track,tauMax)
     ltrack=length(track[!,:Time])
-    msd=zeros(tauMax+1)
-    for tau in 1:tauMax 
+    tMax=min(tauMax, floor(Int, ltrack/5))
+    msd=fill(NaN, tauMax+1)
+    msd[1:tMax+1].=0
+    for tau in 1:tMax 
         for i in tau+1:ltrack
             msd[tau+1]+=((track[i,:xdc]-track[i-tau,:xdc])^2+(track[i,:ydc]-track[i-tau,:ydc])^2)/(ltrack-tau)
         end
@@ -145,11 +150,11 @@ graphMSD=plot();
 
 matrMSD=fill(NaN, tauMax+1, length(idx))
 
-xMSD=Array(0:1/12:tauMax/12)
+xMSD=Array(0:1/framerate:tauMax/framerate)
 
-for i in 1:length(idx)   # -1 perché ho scoperto che la traiettoria che andava fuori scala erano l'ultimma, in entrambi i casi (-4 x Brownian)
+for i in 1:length(idx)
     matrMSD[1:tauMax+1, i] = MSDfun(gdf[idx[i]],tauMax)
-#    plot!(graphMSD, xMSD, matrMSD[1:tauMax+1, i],label = string("MSD ",i),legend=false)         
+    #    plot!(graphMSD, xMSD, matrMSD[1:tauMax+1, i],label = string("MSD ",i),legend=false)         
 end
 
 MSD=vec(nanmean(matrMSD, dims=2))
@@ -170,19 +175,34 @@ tauM="tauM"*string(tauMax, base = 10, pad = 2)
 png(graphMSD, path*"MSD_"*filename*tauM)
 
 ## ---Fit----------------------------------------------
-# model(t,MSD,D)=4D.*t.+(V.^2).*(t)^2
-model(t,p)=4*p[1].*t.+(p[2].^2).*(t).^2
-p0=[D,0.1] #first guess
-fit2=LsqFit.curve_fit(model,xMSD,MSD,p0,lower=[0.2*D,0.0],upper=[5*D,10])
-p=fit2.param
-plot!(xMSD,model(xMSD,p), label="Fit")
-#confidence_inter = confidence_interval(fit2, 0.05)
-velox=string(round(p[2],digits=2))
-print("v = ")
-println(velox)
-#title!("+ H2O2: v= "*velox)
+if  (0.5*tr*framerate)>10  #tr<<tauMax, ma abbiamo video troppo corti, se riesci a farli di circa 1 min moltiplica per 5 invece
+    # model(t,MSD,D)=4D.*t.+(V.^2).*(t)^2
+    model(t,p)=4*p[1].*t.+(p[2].^2).*(t).^2
+    p0=[D,0.1] #first guess
+    fit2=LsqFit.curve_fit(model,xMSD,MSD,p0,lower=[0.2*D,0.0],upper=[5*D,10])
+    p=fit2.param
+    plot!(xMSD,model(xMSD,p), label="Fit")
+    #confidence_inter = confidence_interval(fit2, 0.05)
+    velox=string(round(p[2],digits=2))
+    print("v = ")
+    println(velox)
+    #title!("+ H2O2: v= "*velox)
+
+elseif tauMax>(2*tr*framerate)+10  #tr<<tauMax, ma abbiamo video troppo corti, se riesci a farli di circa 1 min moltiplica per 5 invece
+    model(t,p)=4*p[1].*t.+(p[2].^2).*(t).^2
+    p0=[D,0.1] #first guess
+    fit2=LsqFit.curve_fit(model,xMSD,MSD,p0,lower=[0.2*D,0.0],upper=[5*D,10])
+    p=fit2.param
+    plot!(xMSD,model(xMSD,p), label="Fit")
+    #confidence_inter = confidence_interval(fit2, 0.05)
+    velox=string(round(p[2],digits=2))
+    print("v = ")
+    println(velox)
+    #title!("+ H2O2: v= "*velox)
+end 
 
 png(graphSDtrck,  path*"tracks_"*filename*tauM)
+png(graphSDtrck_dc,  path*"tracks_"*filename*"_dc"*tauM)
 png(graphMSD, path*"MSDfit_"*filename*tauM)
 
 #---Save a .csv with the MSD to overlay plots in a second moment
