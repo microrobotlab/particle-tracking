@@ -89,7 +89,7 @@ Vy=vec(nanmean(matrVy, dims=2))
 Δx=cumsum(Vx/framerate)
 Δy=cumsum(Vy/framerate)
 plot(Δx)
-plot!(Δy)
+display(plot!(Δy))
 
 for i in 1:nTraks
     h=length(gdf[i][!,:Time])
@@ -100,7 +100,7 @@ end
 
 # Plots a restricted number of track, scaled to zero ---> you may have to change axes limits!!!
 
-#---> Initialize Plot
+#---> Initialize 0TRAJECTORY Plot
 graphSDtrck =plot();
 
 for i in rand(idx,min(length(idx),10))
@@ -115,13 +115,13 @@ end
 display(graphSDtrck)
 
 
-#---> Initialize Plot track and corrected
+#---> Initialize Plot track and DRIFT corrected
 graphSDtrck_dc =plot(yflip=true);
 
 for i in idx
     ## Add column and fill it with data
-    plot!(graphSDtrck, gdf[i][!,:xdc],gdf[i][!,:ydc], color=:red, legend=false, aspect_ratio = 1,framestyle = :box)         
-    plot!(graphSDtrck, gdf[i][!,:x],gdf[i][!,:y], color=:green, legend=false, aspect_ratio = 1,framestyle = :box)         
+    plot!(graphSDtrck_dc, gdf[i][!,:xdc],gdf[i][!,:ydc], color=:red, legend=false, aspect_ratio = 1,framestyle = :box)         
+    plot!(graphSDtrck_dc, gdf[i][!,:x],gdf[i][!,:y], color=:green, legend=false, aspect_ratio = 1,framestyle = :box)         
 end
 
 display(graphSDtrck_dc)
@@ -159,8 +159,8 @@ end
 
 MSD=vec(nanmean(matrMSD, dims=2))
 dsMSD=vec(nanstd(matrMSD; dims=2))
-plot!(xMSD,matrMSD, ylims=(-0.10,4.10), legend=false)
-plot!(xMSD,MSD, yerror=dsMSD, ylims=(-0.10,4.10), marker=true,legend=false);
+#plot!(xMSD,matrMSD, ylims=(-0.10,4.10), legend=false)  #plotta i singoli MSD di ogni traccia
+plot!(xMSD,MSD, yerror=dsMSD, ylims=(-0.10,8.10), marker=true,legend=false);  #plotta la media
 #Layout(xaxis_range=[0, 1], yaxis_range=[0,2])
 xlabel!("Δt [s]");
 ylabel!("MSD [μm²]")
@@ -175,30 +175,32 @@ tauM="tauM"*string(tauMax, base = 10, pad = 2)
 png(graphMSD, path*"MSD_"*filename*tauM)
 
 ## ---Fit----------------------------------------------
-if  (0.5*tr*framerate)>10  #tr<<tauMax, ma abbiamo video troppo corti, se riesci a farli di circa 1 min moltiplica per 5 invece
+if  (0.5*tr*framerate)>10  #tr>>tauMax, BALLISTIC regime, fit parabolico inizio, ma abbiamo frame rate troppo bassi
     # model(t,MSD,D)=4D.*t.+(V.^2).*(t)^2
     model(t,p)=4*p[1].*t.+(p[2].^2).*(t).^2
     p0=[D,0.1] #first guess
-    fit2=LsqFit.curve_fit(model,xMSD,MSD,p0,lower=[0.2*D,0.0],upper=[5*D,10])
+    fit2=LsqFit.curve_fit(model,xMSD[1:10],MSD[1:10],p0,lower=[0.2*D,0.0],upper=[5*D,10])
     p=fit2.param
     plot!(xMSD,model(xMSD,p), label="Fit")
     #confidence_inter = confidence_interval(fit2, 0.05)
     velox=string(round(p[2],digits=2))
     print("v = ")
     println(velox)
-    #title!("+ H2O2: v= "*velox)
+    title!("v= "*velox)
 
-elseif tauMax>(2*tr*framerate)+10  #tr<<tauMax, ma abbiamo video troppo corti, se riesci a farli di circa 1 min moltiplica per 5 invece
-    model(t,p)=4*p[1].*t.+(p[2].^2).*(t).^2
-    p0=[D,0.1] #first guess
-    fit2=LsqFit.curve_fit(model,xMSD,MSD,p0,lower=[0.2*D,0.0],upper=[5*D,10])
+elseif tauMax>(2*tr*framerate)+10  #tr<<tauMax, DIFFUSIVE regime, linear fit, ma abbiamo video troppo corti, se riesci a farli di circa 1 min moltiplica per 5 invece
+    model(t,p)=4*p[1]*D*t.-(p[2])*(((tr)^2)/2)
+#    model(t,p)=4*(p[1]*D+(1/4)*(p[2])*tr)*t.-(p[2])*(((tr)^2)/2)
+    p0=[1.0,1.0] #first guess
+#    fit2=LsqFit.curve_fit(model,xMSD[floor(Int,(2*tr*framerate)):end],MSD[floor(Int,(2*tr*framerate)):end],p0)
+    fit2=LsqFit.curve_fit(model,xMSD[end-9:end],MSD[end-9:end],p0, lower=[0.2,0.0],upper=[5.0,100.0])
     p=fit2.param
     plot!(xMSD,model(xMSD,p), label="Fit")
     #confidence_inter = confidence_interval(fit2, 0.05)
-    velox=string(round(p[2],digits=2))
+    velox=string(round(sqrt(p[2]),digits=2))
     print("v = ")
     println(velox)
-    #title!("+ H2O2: v= "*velox)
+    title!("v= "*velox)
 end 
 
 png(graphSDtrck,  path*"tracks_"*filename*tauM)
@@ -206,7 +208,8 @@ png(graphSDtrck_dc,  path*"tracks_"*filename*"_dc"*tauM)
 png(graphMSD, path*"MSDfit_"*filename*tauM)
 
 #---Save a .csv with the MSD to overlay plots in a second moment
-
+MSD_df=DataFrame(xMSD=xMSD, MSD=MSD, yerror=dsMSD)
+CSV.write(path*"MSD_"*filename*tauM*".csv", MSD_df)
 
 #---Save variables------------------------------------
 d=Dict("length_idx"=>length(idx), "velox"=>velox,"tauMax"=>tauMax,"nTracks"=>nTraks, "ltrackmin"=>ltrackmin,"displminpx"=>displminpx, "jump"=>jump, "idx"=>idx)
