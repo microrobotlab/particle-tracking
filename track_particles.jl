@@ -3,9 +3,13 @@ using CSV, DataFrames
 include("save_data.jl")
 
 
-##opens the video, creates a iterable stack of frames stored in "vid"
-folder="J10+H2O2\\"
-filename="movie057_J10+H2O2"
+##INSERT --- opens the video, creates a iterable stack of frames stored in "vid"
+folder="J1\\"
+filename="J1brown_27_3march"
+#folder="J10+H2O2\\"
+#filename="J10H2O2_m58"
+#-------------------------------------------------------------------------------
+
 pathV = "..\\tracking_videos\\Results\\" *folder #Path dal PC nuovo, per vecchio sostituisci g.petrucci con petru
 pathTOT=pathV*filename*".avi"
 io   = VideoIO.open(pathTOT)
@@ -15,13 +19,13 @@ img  = first(vid)
 #creates a blob tracker with the desired parameters.
 mask=trues(1530,2040)
 mask[1300:1530,1700:2040].=false
-bt = BlobTracker(5:11, #array of blob sizes we want to detect > era 5 e 11
-                3.0, # σw Dynamics noise std. (kalman filter param)
-                10.0,  # σe Measurement noise std. (pixels) (kalman filter param)
+bt = BlobTracker(5:11, #array of blob sizes we want to detect --> era 5 e 11
+                3.0, # σw Dynamics noise std. (kalman filter param)  --> era 3.0
+                10.0,  # σe Measurement noise std. (pixels) (kalman filter param) --> era 10.0
                 mask=mask, #image processing before the detection, not implemented here because unecessary
                 #preprocessor = preprocessor, #image processing before the detection, not implemented here because unecessary
-                amplitude_th = 0.008, ## with less, like 0.007, it detects false positives (in the Hirox videos)
-                correspondence = HungarianCorrespondence(p=0.5, dist_th=4), # dist_th is the number of sigmas away from a predicted location a measurement is accepted.
+                amplitude_th = 0.008, ## with less, like 0.007, it detects false positives (in the Hirox videos) --> era 0.008
+                correspondence = HungarianCorrespondence(p=0.5, dist_th=4), # dist_th is the number of sigmas away from a predicted location a measurement is accepted.--> era p=0.5, dist_th=4
 )
 
 #tune_size can be used to automatically tune the size array in bt based on img (the first img of vid). not mandatory.

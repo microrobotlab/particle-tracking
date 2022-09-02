@@ -1,33 +1,44 @@
-using CSV, Pkg, DataFrames, CategoricalArrays, Plots, NaNStatistics, CurveFit, LsqFit, Statistics, JSON3, FileIO
+using CSV, Pkg, DataFrames, CategoricalArrays, Plots, NaNStatistics, CurveFit, LsqFit, Statistics, JSON3, FileIO, Dates
 gr()    #backend dei plot, cerca figure interattive
 
-## Read the data file and save it to a dataframe: choose between one of the two
-folder="J10+H2O2\\"
-filename="movie057_J10+H2O2"
+##---INNSERT---same as track_particles------------------
+#folder="J11_PS_H2O2esaurita\\"
+#filename="J11Brown_m44"
 
+#folder="J11_PS+H2O2\\"
+#filename="J11H2O2_m42"
+
+#folder="J10_in milliQ\\"
+#filename="movie052_J10_milliQ"
+
+folder="J10+H2O2\\"
+filename="J10H2O2_m58"
+#filename="movie057_J10+H2O2"
+#----- INSERT FROM FIJI -------
+convFact=50/318 #mid 1000x #1/6.32
+#convFact= 50/255 # mid 800x
+diamPart=1  # in microns
+
+#---parameters for the filtering---
+framerate=12
+ltrackmin=framerate*5 #tauMax> 1 sec 
+displminpx=0.5 #medium displacement between two adiacents point > 1 pixel - filters out still particles (rumore su part che stanno ferme)
+jump=2 #max jump allowed between 2 frames
+#------------------------------
+YlimMSD=8.1
+
+## Read the data file and save it to a dataframe
 path="Results\\"*folder
-#df = CSV.read("brownian_coordniates.csv", DataFrame)
-#df = CSV.read("h2o2_1_coordinates.csv", DataFrame)
 df = CSV.read(path*"coordinates_"*filename*".csv", DataFrame)
 
 # Make x and y columns float and convert pixels to microns
 
-#----- INSERT FROM FIJI ------- REMEMBER to change filename and the savings at the end, if running all
-#convFact=50/318 #mid 1000x #1/6.32
-convFact= 50/255 # mid 800x
-diamPart=1  # in microns
-#------------------------------
-#---on the basis of the entry, calculate tauMax for the parabolic fitting, for other fits tauMax< 1/5 length video
+#---on the basis of the entry, calculate tauMax for the parabolic fitting, for other fits tauMax< 1/5 (o 1/10) *length video
 D=(1.380649e-23*298)/(6π*1e-3*(diamPart*1e-6/2))*1e12     #um^2/s
 Dr=(1.380649e-23*298)/(8π*1e-3*(diamPart*1e-6/2)^3)
 tr=(Dr)^(-1)
-framerate=12
-tm=tr*framerate
-tauMax=40 #floor(Int, tm)
-#---parameters for the filtering---
-ltrackmin=framerate*5 #tauMax> 1 sec 
-displminpx=0.5 #medium displacement between two adiacents point > 1 pixel - filters out still particles (rumore su part che stanno ferme)
-jump=2 #max jump allowed between 2 frames
+tm=tr*framerate  #tauMax sensato per fare un fitting parabolico, in base al frame rate
+
 #----------------------------------
 
 df[!,:x] = df[!,:x]*convFact
@@ -62,15 +73,16 @@ for i in 1:length(gdf)
     end
 end
 
-print("n. of traks = ")
+print("n. of tracks = ")
 println(length(gdf))
-print("n. of filtered traks = ")
+print("n. of filtered tracks = ")
 println(length(idx))
 
 # Calculate number of detected traks
 nTraks=length(gdf)
 # Find Max length of time vector
 lt = maximum([size(g)[1] for g in gdf])
+tauMax=ceil(Int,lt/10) 
 
 # Filters out the drift due to the addition of liquid and save results on a new column of gdf
 matrVx=fill(NaN, lt, nTraks)
@@ -129,7 +141,7 @@ display(graphSDtrck_dc)
 
 function MSDfun(track,tauMax)
     ltrack=length(track[!,:Time])
-    tMax=min(tauMax, floor(Int, ltrack/5))
+    tMax=min(tauMax, ceil(Int, ltrack/10))
     msd=fill(NaN, tauMax+1)
     msd[1:tMax+1].=0
     for tau in 1:tMax 
@@ -160,7 +172,7 @@ end
 MSD=vec(nanmean(matrMSD, dims=2))
 dsMSD=vec(nanstd(matrMSD; dims=2))
 #plot!(xMSD,matrMSD, ylims=(-0.10,4.10), legend=false)  #plotta i singoli MSD di ogni traccia
-plot!(xMSD,MSD, yerror=dsMSD, ylims=(-0.10,8.10), marker=true,legend=false);  #plotta la media
+plot!(xMSD,MSD, yerror=dsMSD, ylims=(-0.10,YlimMSD), marker=true,legend=false);  #plotta la media
 #Layout(xaxis_range=[0, 1], yaxis_range=[0,2])
 xlabel!("Δt [s]");
 ylabel!("MSD [μm²]")
@@ -171,29 +183,17 @@ display(graphMSD)
 
 
 #---SAVE WITHOUT the fit-------------------------------
-tauM="tauM"*string(tauMax, base = 10, pad = 2)
-png(graphMSD, path*"MSD_"*filename*tauM)
+#tauM="tauM"*string(tauMax, base = 10, pad = 2)  #per inserire tauMax nel titolo, sostituito con datetime
+DateTime= Dates.format(now(), "dduyy_HHMM") #Dates.now() #Dates.format(now(), "HH:MM")
+#Dates.format(DateTime, "e, dd u yyyy HH:MM:SS")
+png(graphMSD, path*"MSD_"*filename*DateTime)
 
 ## ---Fit----------------------------------------------
-if  (0.5*tr*framerate)>10  #tr>>tauMax, BALLISTIC regime, fit parabolico inizio, ma abbiamo frame rate troppo bassi
+if  (0.5*tr*framerate)>5  #tr>>tauMax, BALLISTIC regime, fit parabolico inizio, ma abbiamo frame rate troppo bassi
     # model(t,MSD,D)=4D.*t.+(V.^2).*(t)^2
-    model(t,p)=4*p[1].*t.+(p[2].^2).*(t).^2
+    model(t,p)=4*p[1].*t.+(p[2]).*(t).^2
     p0=[D,0.1] #first guess
-    fit2=LsqFit.curve_fit(model,xMSD[1:10],MSD[1:10],p0,lower=[0.2*D,0.0],upper=[5*D,10])
-    p=fit2.param
-    plot!(xMSD,model(xMSD,p), label="Fit")
-    #confidence_inter = confidence_interval(fit2, 0.05)
-    velox=string(round(p[2],digits=2))
-    print("v = ")
-    println(velox)
-    title!("v= "*velox)
-
-elseif tauMax>(2*tr*framerate)+10  #tr<<tauMax, DIFFUSIVE regime, linear fit, ma abbiamo video troppo corti, se riesci a farli di circa 1 min moltiplica per 5 invece
-    model(t,p)=4*p[1]*D*t.-(p[2])*(((tr)^2)/2)
-#    model(t,p)=4*(p[1]*D+(1/4)*(p[2])*tr)*t.-(p[2])*(((tr)^2)/2)
-    p0=[1.0,1.0] #first guess
-#    fit2=LsqFit.curve_fit(model,xMSD[floor(Int,(2*tr*framerate)):end],MSD[floor(Int,(2*tr*framerate)):end],p0)
-    fit2=LsqFit.curve_fit(model,xMSD[end-9:end],MSD[end-9:end],p0, lower=[0.2,0.0],upper=[5.0,100.0])
+    fit2=LsqFit.curve_fit(model,xMSD[1:5],MSD[1:5],p0,lower=[0.2*D,0.0],upper=[5*D,10])
     p=fit2.param
     plot!(xMSD,model(xMSD,p), label="Fit")
     #confidence_inter = confidence_interval(fit2, 0.05)
@@ -201,19 +201,36 @@ elseif tauMax>(2*tr*framerate)+10  #tr<<tauMax, DIFFUSIVE regime, linear fit, ma
     print("v = ")
     println(velox)
     title!("v= "*velox)
+
+elseif tauMax>(2*tr*framerate)+5  #tr<<tauMax, DIFFUSIVE regime, linear fit, ma abbiamo video troppo corti, se riesci a farli di circa 1 min moltiplica per 5 invece
+    model(t,p)=4*p[1]*D*t.-p[2]
+#    model(t,p)=4*(p[1]*D+(1/4)*(p[2])*tr)*t.-(p[2])*(((tr)^2)/2)
+    p0=[1.0,1.0] #first guess
+#    fit2=LsqFit.curve_fit(model,xMSD[floor(Int,(2*tr*framerate)):end],MSD[floor(Int,(2*tr*framerate)):end],p0)
+    fit2=LsqFit.curve_fit(model,xMSD[end-4:end],MSD[end-4:end],p0, lower=[0.2,0.0],upper=[5.0,Inf])
+    p=fit2.param
+    plot!(xMSD,model(xMSD,p), label="Fit")
+#    confidence_inter = confidence_interval(fit2, 0.05)
+#    velox=string(round(sqrt(p[2]),digits=2))
+    velox=string(round(sqrt(4(p[1]-D)/tr),digits=2))
+    print("v = ")
+    println(velox)
+    title!("v= "*velox)
 end 
 
-png(graphSDtrck,  path*"tracks_"*filename*tauM)
-png(graphSDtrck_dc,  path*"tracks_"*filename*"_dc"*tauM)
-png(graphMSD, path*"MSDfit_"*filename*tauM)
+display(graphMSD)
+
+png(graphSDtrck,  path*"tracks_"*filename*DateTime)
+png(graphSDtrck_dc,  path*"tracks_"*filename*"_dc"*DateTime)
+png(graphMSD, path*"MSDfit_"*filename*DateTime)
 
 #---Save a .csv with the MSD to overlay plots in a second moment
 MSD_df=DataFrame(xMSD=xMSD, MSD=MSD, yerror=dsMSD)
-CSV.write(path*"MSD_"*filename*tauM*".csv", MSD_df)
+CSV.write(path*"MSD_"*filename*DateTime*".csv", MSD_df)
 
 #---Save variables------------------------------------
-d=Dict("length_idx"=>length(idx), "velox"=>velox,"tauMax"=>tauMax,"nTracks"=>nTraks, "ltrackmin"=>ltrackmin,"displminpx"=>displminpx, "jump"=>jump, "idx"=>idx)
-JSON3.write(path*"var_"*filename*tauM*".json", d)
+d=Dict("length_idx"=>length(idx), "velox"=>velox,"tauMax"=>tauMax,"nTracks"=>nTraks, "ltrackmin"=>ltrackmin,"displminpx"=>displminpx, "jump"=>jump, "convFact"=>convFact,"diamPart"=>diamPart,"idx"=>idx)
+JSON3.write(path*"var_"*filename*DateTime*".json", d)
 #--to read the JSON3 file and get back the variables--
 #d2= JSON3.read(read("file.json", String))
 #for (key,value) in d2

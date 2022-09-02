@@ -1,9 +1,0 @@
-linea 44:    if (ltrack>12) && (mean(dr)>(0.8*convFact)) #track length> 1 sec + medium displacement between two adiacents point > 1 pixel - filters out still particles (rumore su part che stanno ferme)
-
-cambiato 1*conFact con 0.8*convFact, senno idx veniva 1, cosi viene 20, con 0.5 veniva 34, con 0.2 54..
-abbassando il lim su ltrack da 12 a 6 (mezzo sec) non cambia nulla
-
-di conseguenza nel plot delle track cambio estremi del ciclo, a step di 2 , da 1 a 20. (era step 5 fino a 50)
-
-ATTENZIONE 
-linea 131 era rimasto per tutti for i in 1:length(idx)-8   # -8 perché ho scoperto che la traiettoria che andava fuori scala erano l'ultimma, in entrambi i casi (-4 x Brownian)
