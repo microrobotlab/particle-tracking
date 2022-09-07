@@ -1,4 +1,4 @@
-using CSV, Pkg, DataFrames, CategoricalArrays, Plots, NaNStatistics, CurveFit, LsqFit, Statistics, JSON3, FileIO, Dates
+using CSV, Pkg, StatsPlots, DataFrames, CategoricalArrays, Plots, NaNStatistics, LsqFit, Statistics, JSON3, FileIO, Dates
 gr()    #backend dei plot, cerca figure interattive
 
 ##---INNSERT---same as track_particles------------------
@@ -11,12 +11,20 @@ gr()    #backend dei plot, cerca figure interattive
 #folder="J10_in milliQ\\"
 #filename="movie052_J10_milliQ"
 
-folder="J10+H2O2\\"
-filename="J10H2O2_m58"
+#folder="J10+H2O2\\"
+#filename="J10H2O2_m55"
+
+#folder="J1\\"
+#filename="J1H2O2_32_3march"
+#filename="J1+H2O2_m40_2march"
+
+folder="Sio2inMilliQ\\"
+filename="SiO2millliQ_frame_m43"
+
 #filename="movie057_J10+H2O2"
 #----- INSERT FROM FIJI -------
-convFact=50/318 #mid 1000x #1/6.32
-#convFact= 50/255 # mid 800x
+#convFact=50/318 #mid 1000x #1/6.32
+convFact= 50/255 # mid 800x
 diamPart=1  # in microns
 
 #---parameters for the filtering---
@@ -55,12 +63,16 @@ gdf = groupby(df,:BlobID,sort=true)
 #---> Initialize Plot
 
 idx=[]   # save IDnumber of good traks
-
+meandr = [mean(sqrt.((diff(g[!,:x])).^2+(diff(g[!,:y]).^2))) for g in gdf]
+quartiles = quantile(meandr,[0.25, 0.75])
+IQR=quartiles[2]-quartiles[1] #diff(y)
+lowFen=quartiles[1]-1.5*IQR
+upFen=quartiles[2]+1.5*IQR
 for i in 1:length(gdf)
     flag=false
     ltrack=length(gdf[i][!,:x])
     dr=sqrt.((diff(gdf[i][!,:x])).^2+(diff(gdf[i][!,:y]).^2))  #vector with the instant dr of each track
-    if (ltrack>ltrackmin) && (mean(dr)>(displminpx*convFact)) #track length> 1 sec + medium displacement between two adiacents point > 1 pixel - filters out still particles (rumore su part che stanno ferme)
+    if (ltrack>ltrackmin) && (meandr[i]>lowFen && meandr[i]<upFen) #track length> 1 sec + medium displacement between two adiacents point > 1 pixel - filters out still particles (rumore su part che stanno ferme)
         for n in 1:(ltrack-1)
             if (dr[n]>jump*diamPart) # || (gdf[i][n,:x]>1700*convFact && gdf[i][n,:y]>1420*convFact) #max jump allowed between 2 frames x diamPart + cut scalebar (cutted a priori)
                 flag=true
@@ -157,8 +169,8 @@ end
 
 # Plots the MSD   ---> you may have to change axes limits!!!
 
-#---> Initialize Plot
-graphMSD=plot();
+#---> Initialize Plot singoli MSD
+graphsingMSD=plot();
 
 matrMSD=fill(NaN, tauMax+1, length(idx))
 
@@ -171,7 +183,81 @@ end
 
 MSD=vec(nanmean(matrMSD, dims=2))
 dsMSD=vec(nanstd(matrMSD; dims=2))
-#plot!(xMSD,matrMSD, ylims=(-0.10,4.10), legend=false)  #plotta i singoli MSD di ogni traccia
+plot!(xMSD,matrMSD, ylims=(-0.10,YlimMSD), legend=false)  #plotta i singoli MSD di ogni traccia
+plot!(xMSD,MSD, yerror=dsMSD, ylims=(-0.10,YlimMSD), marker=true,legend=false);  #plotta la media
+#Layout(xaxis_range=[0, 1], yaxis_range=[0,2])
+xlabel!("Δt [s]");
+ylabel!("MSD [μm²]")
+
+display(graphsingMSD)
+
+
+
+
+
+
+
+
+
+##--- Calc OUTLIERs -------------------
+y=zeros(2)
+x=matrMSD[10,:] #10 is a rando num, put the values at the last x of the shrtest track
+
+x0=zeros(length(matrMSD[10,:]))
+xfps=fill(9/12,(length(matrMSD[10,:])))
+quantile!(y, x, [0.25,0.75])
+
+IQR=y[2]-y[1] #diff(y)
+loup=[y[1].-1.5*IQR,y[2].+1.5*IQR]
+lowFen=y[1]-1.5*IQR
+upFen=y[2]+1.5*IQR
+plot()
+#scatter()
+#trace1=box(y=x, boxpoints="all", quartilemethod="linear", name="MSD p.to 10")
+#plot([trace1])
+#scatter(x0,x)
+plot!(xfps,x,marker=true)
+plot!([0,0],loup,marker=true)
+
+matrMSDfilt=copy(matrMSD)
+idx2=[]
+for i in 1:length(x)
+#    if isless(x[i],loup[1]) && isless(loup[2],x[i]) #compreso nell'intervallo
+#    if isless(x[i],lowFen[1]) && isless(upFen[1],x[i]) #compreso nell'intervallo
+    if (matrMSD[10,i]<lowFen) || (matrMSD[10,i]>upFen) #compreso nell'intervallo
+        matrMSDfilt[:,i].=NaN
+        push!(idx2,i)
+    end
+end
+print("n. NON outlier track=")
+println(length(idx)-length(idx2))
+
+#---> Initialize Plot singoli MSD dopo il filtro degli OUTLIERs
+graphsingMSD2=plot();
+
+
+MSD2=vec(nanmean(matrMSDfilt, dims=2))
+dsMSD2=vec(nanstd(matrMSDfilt; dims=2))
+plot!(xMSD,matrMSDfilt, ylims=(-0.10,YlimMSD), legend=false)  #plotta i singoli MSD di ogni traccia
+plot!(xMSD,matrMSD[:,idx2], ylims=(-0.10,YlimMSD), legend=false)  #plotta i singoli MSD di ogni traccia
+plot!(xMSD,MSD2, yerror=dsMSD2, ylims=(-0.10,YlimMSD), marker=true,legend=false);  #plotta la media
+#Layout(xaxis_range=[0, 1], yaxis_range=[0,2])
+xlabel!("Δt [s]");
+ylabel!("MSD [μm²]")
+
+display(graphsingMSD2)
+
+
+
+
+
+
+
+
+
+
+#---> Initialize Plot MEDIA MSD
+graphMSD=plot();
 plot!(xMSD,MSD, yerror=dsMSD, ylims=(-0.10,YlimMSD), marker=true,legend=false);  #plotta la media
 #Layout(xaxis_range=[0, 1], yaxis_range=[0,2])
 xlabel!("Δt [s]");
@@ -181,11 +267,11 @@ display(graphMSD)
 
 
 
-
 #---SAVE WITHOUT the fit-------------------------------
 #tauM="tauM"*string(tauMax, base = 10, pad = 2)  #per inserire tauMax nel titolo, sostituito con datetime
 DateTime= Dates.format(now(), "dduyy_HHMM") #Dates.now() #Dates.format(now(), "HH:MM")
 #Dates.format(DateTime, "e, dd u yyyy HH:MM:SS")
+png(graphsingMSD, path*"singMSD_"*filename*DateTime)
 png(graphMSD, path*"MSD_"*filename*DateTime)
 
 ## ---Fit----------------------------------------------
@@ -229,7 +315,7 @@ MSD_df=DataFrame(xMSD=xMSD, MSD=MSD, yerror=dsMSD)
 CSV.write(path*"MSD_"*filename*DateTime*".csv", MSD_df)
 
 #---Save variables------------------------------------
-d=Dict("length_idx"=>length(idx), "velox"=>velox,"tauMax"=>tauMax,"nTracks"=>nTraks, "ltrackmin"=>ltrackmin,"displminpx"=>displminpx, "jump"=>jump, "convFact"=>convFact,"diamPart"=>diamPart,"idx"=>idx)
+d=Dict("length_idx"=>length(idx), "velox"=>velox,"tauMax"=>tauMax,"nTracks"=>nTraks, "ltrackmin"=>ltrackmin," displminpx"=>displminpx, "jump"=>jump, "convFact"=>convFact, "framerate"=>framerate, "diamPart"=>diamPart,"idx"=>idx)
 JSON3.write(path*"var_"*filename*DateTime*".json", d)
 #--to read the JSON3 file and get back the variables--
 #d2= JSON3.read(read("file.json", String))
