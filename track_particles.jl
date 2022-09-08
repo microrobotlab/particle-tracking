@@ -4,10 +4,11 @@ include("save_data.jl")
 
 
 ##INSERT --- opens the video, creates a iterable stack of frames stored in "vid"
-folder="J1\\"
-filename="J1brown_27_3march"
-#folder="J10+H2O2\\"
-#filename="J10H2O2_m58"
+#folder="J1\\"
+#filename="J1brown_24_3march"
+folder="Sio2inMilliQ\\"
+filename="SiO2millliQ_frame_m43" #48 di SiO2+H2O2 e 45 di SiO2 milliQ  non prende i blob
+
 #-------------------------------------------------------------------------------
 
 pathV = "..\\tracking_videos\\Results\\" *folder #Path dal PC nuovo, per vecchio sostituisci g.petrucci con petru

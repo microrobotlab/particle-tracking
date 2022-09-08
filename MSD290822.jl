@@ -1,4 +1,4 @@
-using CSV, Pkg, StatsPlots, DataFrames, CategoricalArrays, Plots, NaNStatistics, LsqFit, Statistics, JSON3, FileIO, Dates
+using CSV, Pkg, StatsPlots, DataFrames, CategoricalArrays, Plots, NaNStatistics, LsqFit, CurveFit, Statistics, JSON3, FileIO, Dates
 gr()    #backend dei plot, cerca figure interattive
 
 ##---INNSERT---same as track_particles------------------
@@ -22,6 +22,8 @@ folder="Sio2inMilliQ\\"
 filename="SiO2millliQ_frame_m43"
 
 #filename="movie057_J10+H2O2"
+
+
 #----- INSERT FROM FIJI -------
 #convFact=50/318 #mid 1000x #1/6.32
 convFact= 50/255 # mid 800x
@@ -58,16 +60,14 @@ df[!,:BlobID] = categorical(df[!,:BlobID],compress=true)
 gdf = groupby(df,:BlobID,sort=true)
 
 
-# filter out trajectories shorter than 5 sec (12 frames), the still ones, those with jumps and cut the scalebar
-
-#---> Initialize Plot
-
+# filter out trajectories shorter than 5 sec (12 frames), those with jumps and the outliers
 idx=[]   # save IDnumber of good traks
 meandr = [mean(sqrt.((diff(g[!,:x])).^2+(diff(g[!,:y]).^2))) for g in gdf]
 quartiles = quantile(meandr,[0.25, 0.75])
 IQR=quartiles[2]-quartiles[1] #diff(y)
 lowFen=quartiles[1]-1.5*IQR
 upFen=quartiles[2]+1.5*IQR
+boxplot(meandr)
 for i in 1:length(gdf)
     flag=false
     ltrack=length(gdf[i][!,:x])
@@ -94,7 +94,7 @@ println(length(idx))
 nTraks=length(gdf)
 # Find Max length of time vector
 lt = maximum([size(g)[1] for g in gdf])
-tauMax=ceil(Int,lt/10) 
+tauMax=ceil(Int,lt/10) #ceil approssima per eccesso, floor per difetto 
 
 # Filters out the drift due to the addition of liquid and save results on a new column of gdf
 matrVx=fill(NaN, lt, nTraks)
@@ -193,69 +193,6 @@ display(graphsingMSD)
 
 
 
-
-
-
-
-
-
-##--- Calc OUTLIERs -------------------
-y=zeros(2)
-x=matrMSD[10,:] #10 is a rando num, put the values at the last x of the shrtest track
-
-x0=zeros(length(matrMSD[10,:]))
-xfps=fill(9/12,(length(matrMSD[10,:])))
-quantile!(y, x, [0.25,0.75])
-
-IQR=y[2]-y[1] #diff(y)
-loup=[y[1].-1.5*IQR,y[2].+1.5*IQR]
-lowFen=y[1]-1.5*IQR
-upFen=y[2]+1.5*IQR
-plot()
-#scatter()
-#trace1=box(y=x, boxpoints="all", quartilemethod="linear", name="MSD p.to 10")
-#plot([trace1])
-#scatter(x0,x)
-plot!(xfps,x,marker=true)
-plot!([0,0],loup,marker=true)
-
-matrMSDfilt=copy(matrMSD)
-idx2=[]
-for i in 1:length(x)
-#    if isless(x[i],loup[1]) && isless(loup[2],x[i]) #compreso nell'intervallo
-#    if isless(x[i],lowFen[1]) && isless(upFen[1],x[i]) #compreso nell'intervallo
-    if (matrMSD[10,i]<lowFen) || (matrMSD[10,i]>upFen) #compreso nell'intervallo
-        matrMSDfilt[:,i].=NaN
-        push!(idx2,i)
-    end
-end
-print("n. NON outlier track=")
-println(length(idx)-length(idx2))
-
-#---> Initialize Plot singoli MSD dopo il filtro degli OUTLIERs
-graphsingMSD2=plot();
-
-
-MSD2=vec(nanmean(matrMSDfilt, dims=2))
-dsMSD2=vec(nanstd(matrMSDfilt; dims=2))
-plot!(xMSD,matrMSDfilt, ylims=(-0.10,YlimMSD), legend=false)  #plotta i singoli MSD di ogni traccia
-plot!(xMSD,matrMSD[:,idx2], ylims=(-0.10,YlimMSD), legend=false)  #plotta i singoli MSD di ogni traccia
-plot!(xMSD,MSD2, yerror=dsMSD2, ylims=(-0.10,YlimMSD), marker=true,legend=false);  #plotta la media
-#Layout(xaxis_range=[0, 1], yaxis_range=[0,2])
-xlabel!("Δt [s]");
-ylabel!("MSD [μm²]")
-
-display(graphsingMSD2)
-
-
-
-
-
-
-
-
-
-
 #---> Initialize Plot MEDIA MSD
 graphMSD=plot();
 plot!(xMSD,MSD, yerror=dsMSD, ylims=(-0.10,YlimMSD), marker=true,legend=false);  #plotta la media
@@ -266,7 +203,6 @@ ylabel!("MSD [μm²]")
 display(graphMSD)
 
 
-
 #---SAVE WITHOUT the fit-------------------------------
 #tauM="tauM"*string(tauMax, base = 10, pad = 2)  #per inserire tauMax nel titolo, sostituito con datetime
 DateTime= Dates.format(now(), "dduyy_HHMM") #Dates.now() #Dates.format(now(), "HH:MM")
@@ -274,7 +210,9 @@ DateTime= Dates.format(now(), "dduyy_HHMM") #Dates.now() #Dates.format(now(), "H
 png(graphsingMSD, path*"singMSD_"*filename*DateTime)
 png(graphMSD, path*"MSD_"*filename*DateTime)
 
+
 ## ---Fit----------------------------------------------
+
 if  (0.5*tr*framerate)>5  #tr>>tauMax, BALLISTIC regime, fit parabolico inizio, ma abbiamo frame rate troppo bassi
     # model(t,MSD,D)=4D.*t.+(V.^2).*(t)^2
     model(t,p)=4*p[1].*t.+(p[2]).*(t).^2
@@ -284,22 +222,30 @@ if  (0.5*tr*framerate)>5  #tr>>tauMax, BALLISTIC regime, fit parabolico inizio, 
     plot!(xMSD,model(xMSD,p), label="Fit")
     #confidence_inter = confidence_interval(fit2, 0.05)
     velox=string(round(sqrt(p[2]),digits=2))
-    print("v = ")
+    print("v bal = ")
     println(velox)
     title!("v= "*velox)
 
 elseif tauMax>(2*tr*framerate)+5  #tr<<tauMax, DIFFUSIVE regime, linear fit, ma abbiamo video troppo corti, se riesci a farli di circa 1 min moltiplica per 5 invece
-    model(t,p)=4*p[1]*D*t.-p[2]
+    pfit=linear_fit(xMSD[end-4:end],MSD[end-4:end])
+    yfit=pfit[2].*xMSD.+pfit[1]
+    plot!(xMSD,yfit)
+    Deff=pfit[2]/4
+    velox=sqrt((pfit[2]-4D)*tr)
+    velox=sqrt(-2pfit[1]/tr^2)
+
+    #    fit=curve_fit(LinearFit, xMSD[end-4:end],MSD[end-4:end])
+#    model2(t,p)=4*p[1]*D.*t.-p[2]
 #    model(t,p)=4*(p[1]*D+(1/4)*(p[2])*tr)*t.-(p[2])*(((tr)^2)/2)
-    p0=[1.0,1.0] #first guess
+#    p0=[1.0,0.5] #first guess
 #    fit2=LsqFit.curve_fit(model,xMSD[floor(Int,(2*tr*framerate)):end],MSD[floor(Int,(2*tr*framerate)):end],p0)
-    fit2=LsqFit.curve_fit(model,xMSD[end-4:end],MSD[end-4:end],p0, lower=[0.2,0.0],upper=[5.0,Inf])
-    p=fit2.param
-    plot!(xMSD,model(xMSD,p), label="Fit")
+#    fit2=LsqFit.curve_fit(model2,xMSD[end-4:end],MSD[end-4:end],p0, lower=[1.0,0.0],upper=[10.0,Inf])
+#    p=fit2.param
+#    plot!(xMSD,model2(xMSD,p), label="Fit")
 #    confidence_inter = confidence_interval(fit2, 0.05)
 #    velox=string(round(sqrt(p[2]),digits=2))
-    velox=string(round(sqrt(4(p[1]-D)/tr),digits=2))
-    print("v = ")
+#    velox=string(round(sqrt(4(p[1]*D-D)/tr),digits=2))
+    print("v diff = ")
     println(velox)
     title!("v= "*velox)
 end 
