@@ -2,31 +2,12 @@ using CSV, Pkg, StatsPlots, DataFrames, CategoricalArrays, Plots, NaNStatistics,
 gr()    #backend dei plot, cerca figure interattive
 
 ##---INNSERT---same as track_particles------------------
-#folder="J11_PS_H2O2esaurita\\"
-#filename="J11Brown_m44"
-
-#folder="J11_PS+H2O2\\"
-#filename="J11H2O2_m42"
-
-#folder="J10_in milliQ\\"
-#filename="movie052_J10_milliQ"
-
-#folder="J10+H2O2\\"
-#filename="J10H2O2_m55"
-
-#folder="J1\\"
-#filename="J1H2O2_32_3march"
-#filename="J1+H2O2_m40_2march"
-
-folder="Sio2inMilliQ\\"
-filename="SiO2millliQ_frame_m43"
-
-#filename="movie057_J10+H2O2"
-
-
+folder="J10_in milliQ\\"
+filename="movie052_J10_milliQ" #traiettorie brutte, ultima g ha un solo punto, viene NaN meandr, mettendo meandr[1:end-1] al calcolo dei quartili va ma non filtra bene
 #----- INSERT FROM FIJI -------
-#convFact=50/318 #mid 1000x #1/6.32
-convFact= 50/255 # mid 800x
+convFact=50/318 #mid 1000x #1/6.32
+#convFact= 50/255 # mid 800x
+
 diamPart=1  # in microns
 
 #---parameters for the filtering---
@@ -34,7 +15,7 @@ framerate=12
 ltrackmin=framerate*5 #tauMax> 1 sec 
 jump=2 #max jump allowed between 2 frames
 #------------------------------
-YlimMSD=8.1
+YlimMSD=4.1
 
 ## Read the data file and save it to a dataframe
 path="Results\\"*folder
@@ -62,7 +43,7 @@ gdf = groupby(df,:BlobID,sort=true)
 # filter out trajectories shorter than 5 sec (12 frames), those with jumps and the outliers
 idx=[]   # save IDnumber of good traks
 meandr = [mean(sqrt.((diff(g[!,:x])).^2+(diff(g[!,:y]).^2))) for g in gdf]
-quartiles = quantile(meandr,[0.25, 0.75])
+quartiles = [nanquantile(meandr,0.25), nanquantile(meandr,0.75)]
 IQR=quartiles[2]-quartiles[1] #diff(y)
 lowFen=quartiles[1]-1.5*IQR
 upFen=quartiles[2]+1.5*IQR
@@ -208,6 +189,9 @@ DateTime= Dates.format(now(), "dduyy_HHMM") #Dates.now() #Dates.format(now(), "H
 #Dates.format(DateTime, "e, dd u yyyy HH:MM:SS")
 png(graphsingMSD, path*"singMSD_"*filename*DateTime)
 png(graphMSD, path*"MSD_"*filename*DateTime)
+png(graphSDtrck, path*"tracks_"*filename*DateTime)
+png(graphSDtrck_dc, path*"tracks_dc_"*filename*DateTime)
+
 
 
 #---Save a .csv with the MSD to overlay plots in a second moment
@@ -216,7 +200,7 @@ CSV.write(path*"MSD_"*filename*DateTime*".csv", MSD_df)
 
 #---Save variables------------------------------------
 d=Dict("length_idx"=>length(idx), "velox"=>velox,"tauMax"=>tauMax,"nTracks"=>nTraks, "ltrackmin"=>ltrackmin, "jump"=>jump, "convFact"=>convFact, "framerate"=>framerate, "diamPart"=>diamPart,"idx"=>idx)
-JSON3.write(path*"var_"*filename*DateTime*".json", d)
+JSON3.write(path*"var_"*filename*DateTime*".json")
 #--to read the JSON3 file and get back the variables--
 #d2= JSON3.read(read("file.json", String))
 #for (key,value) in d2

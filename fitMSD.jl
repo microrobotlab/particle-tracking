@@ -2,11 +2,11 @@ using CSV, DataFrames, Plots, JSON3, LsqFit, Statistics, Dates #CurveFit
 gr()    #backend dei plot, cerca figure interattive
 
 ##--- Brownian MSD-------------------------------------
-folder="J1\\"
-filename1="MSD_J1brown_27_3march05Sep22_1019"
+folder="CPN3_J3\\"
+filename1="MSD_J3_brown_m2609Sep22_1433"
 ##--- Active MSD---------------------------------------
 #folder="J1\\"
-filename2="MSD_J1+H2O2_m40_2march05Sep22_1153"
+filename2="MSD_J3_act_m2709Sep22_1433"
 
 path="Results\\"*folder
 
@@ -24,7 +24,7 @@ Dr=(1.380649e-23*298)/(8π*1e-3*(diamPart*1e-6/2)^3)
 tr=(Dr)^(-1)
 
 #ylims=6.1
-ylimMSD=6.1
+ylimMSD=4.1
 xlimMSD=2
 lfit=10
 
@@ -69,6 +69,7 @@ print("v diff = ")
 println(velox)
 title!("v diff= "*velox*" μm/s")
 
+display(graphMSD)
 DateTime= Dates.format(now(), "dduyy_HHMM") 
 png(graphMSD, path*"MSDap_"*filename2*DateTime)
 

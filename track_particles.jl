@@ -4,10 +4,8 @@ include("save_data.jl")
 
 
 ##INSERT --- opens the video, creates a iterable stack of frames stored in "vid"
-#folder="J1\\"
-#filename="J1brown_24_3march"
-folder="Sio2inMilliQ\\"
-filename="SiO2millliQ_frame_m43" #48 di SiO2+H2O2 e 45 di SiO2 milliQ  non prende i blob
+folder="CPN3_J3\\"
+filename="J3_act_m28" #48 di SiO2+H2O2 e 45 di SiO2 milliQ  non prende i blob
 
 #-------------------------------------------------------------------------------
 
