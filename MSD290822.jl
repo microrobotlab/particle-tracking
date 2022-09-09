@@ -32,7 +32,6 @@ diamPart=1  # in microns
 #---parameters for the filtering---
 framerate=12
 ltrackmin=framerate*5 #tauMax> 1 sec 
-displminpx=0.5 #medium displacement between two adiacents point > 1 pixel - filters out still particles (rumore su part che stanno ferme)
 jump=2 #max jump allowed between 2 frames
 #------------------------------
 YlimMSD=8.1
@@ -74,7 +73,7 @@ for i in 1:length(gdf)
     dr=sqrt.((diff(gdf[i][!,:x])).^2+(diff(gdf[i][!,:y]).^2))  #vector with the instant dr of each track
     if (ltrack>ltrackmin) && (meandr[i]>lowFen && meandr[i]<upFen) #track length> 1 sec + medium displacement between two adiacents point > 1 pixel - filters out still particles (rumore su part che stanno ferme)
         for n in 1:(ltrack-1)
-            if (dr[n]>jump*diamPart) # || (gdf[i][n,:x]>1700*convFact && gdf[i][n,:y]>1420*convFact) #max jump allowed between 2 frames x diamPart + cut scalebar (cutted a priori)
+            if (dr[n]>jump*diamPart) #max jump allowed between 2 frames x diamPart
                 flag=true
                 break
             end
@@ -211,57 +210,12 @@ png(graphsingMSD, path*"singMSD_"*filename*DateTime)
 png(graphMSD, path*"MSD_"*filename*DateTime)
 
 
-## ---Fit----------------------------------------------
-
-if  (0.5*tr*framerate)>5  #tr>>tauMax, BALLISTIC regime, fit parabolico inizio, ma abbiamo frame rate troppo bassi
-    # model(t,MSD,D)=4D.*t.+(V.^2).*(t)^2
-    model(t,p)=4*p[1].*t.+(p[2]).*(t).^2
-    p0=[D,0.1] #first guess
-    fit2=LsqFit.curve_fit(model,xMSD[1:5],MSD[1:5],p0,lower=[0.2*D,0.0],upper=[5*D,10])
-    p=fit2.param
-    plot!(xMSD,model(xMSD,p), label="Fit")
-    #confidence_inter = confidence_interval(fit2, 0.05)
-    velox=string(round(sqrt(p[2]),digits=2))
-    print("v bal = ")
-    println(velox)
-    title!("v= "*velox)
-
-elseif tauMax>(2*tr*framerate)+5  #tr<<tauMax, DIFFUSIVE regime, linear fit, ma abbiamo video troppo corti, se riesci a farli di circa 1 min moltiplica per 5 invece
-    pfit=linear_fit(xMSD[end-4:end],MSD[end-4:end])
-    yfit=pfit[2].*xMSD.+pfit[1]
-    plot!(xMSD,yfit)
-    Deff=pfit[2]/4
-    velox=sqrt((pfit[2]-4D)*tr)
-    velox=sqrt(-2pfit[1]/tr^2)
-
-    #    fit=curve_fit(LinearFit, xMSD[end-4:end],MSD[end-4:end])
-#    model2(t,p)=4*p[1]*D.*t.-p[2]
-#    model(t,p)=4*(p[1]*D+(1/4)*(p[2])*tr)*t.-(p[2])*(((tr)^2)/2)
-#    p0=[1.0,0.5] #first guess
-#    fit2=LsqFit.curve_fit(model,xMSD[floor(Int,(2*tr*framerate)):end],MSD[floor(Int,(2*tr*framerate)):end],p0)
-#    fit2=LsqFit.curve_fit(model2,xMSD[end-4:end],MSD[end-4:end],p0, lower=[1.0,0.0],upper=[10.0,Inf])
-#    p=fit2.param
-#    plot!(xMSD,model2(xMSD,p), label="Fit")
-#    confidence_inter = confidence_interval(fit2, 0.05)
-#    velox=string(round(sqrt(p[2]),digits=2))
-#    velox=string(round(sqrt(4(p[1]*D-D)/tr),digits=2))
-    print("v diff = ")
-    println(velox)
-    title!("v= "*velox)
-end 
-
-display(graphMSD)
-
-png(graphSDtrck,  path*"tracks_"*filename*DateTime)
-png(graphSDtrck_dc,  path*"tracks_"*filename*"_dc"*DateTime)
-png(graphMSD, path*"MSDfit_"*filename*DateTime)
-
 #---Save a .csv with the MSD to overlay plots in a second moment
 MSD_df=DataFrame(xMSD=xMSD, MSD=MSD, yerror=dsMSD)
 CSV.write(path*"MSD_"*filename*DateTime*".csv", MSD_df)
 
 #---Save variables------------------------------------
-d=Dict("length_idx"=>length(idx), "velox"=>velox,"tauMax"=>tauMax,"nTracks"=>nTraks, "ltrackmin"=>ltrackmin," displminpx"=>displminpx, "jump"=>jump, "convFact"=>convFact, "framerate"=>framerate, "diamPart"=>diamPart,"idx"=>idx)
+d=Dict("length_idx"=>length(idx), "velox"=>velox,"tauMax"=>tauMax,"nTracks"=>nTraks, "ltrackmin"=>ltrackmin, "jump"=>jump, "convFact"=>convFact, "framerate"=>framerate, "diamPart"=>diamPart,"idx"=>idx)
 JSON3.write(path*"var_"*filename*DateTime*".json", d)
 #--to read the JSON3 file and get back the variables--
 #d2= JSON3.read(read("file.json", String))
