@@ -2,8 +2,8 @@ using CSV, Pkg, StatsPlots, DataFrames, CategoricalArrays, Plots, NaNStatistics,
 gr()    #backend dei plot, cerca figure interattive
 
 ##---INNSERT---same as track_particles------------------
-folder="J10_in milliQ\\"
-filename="movie052_J10_milliQ" #traiettorie brutte, ultima g ha un solo punto, viene NaN meandr, mettendo meandr[1:end-1] al calcolo dei quartili va ma non filtra bene
+folder="J11H2O2long\\"
+filename="movie064"  #48_dil non fa #traiettorie brutte, ultima g ha un solo punto, viene NaN meandr, mettendo meandr[1:end-1] al calcolo dei quartili va ma non filtra bene
 #----- INSERT FROM FIJI -------
 convFact=50/318 #mid 1000x #1/6.32
 #convFact= 50/255 # mid 800x
@@ -15,7 +15,7 @@ framerate=12
 ltrackmin=framerate*5 #tauMax> 1 sec 
 jump=2 #max jump allowed between 2 frames
 #------------------------------
-YlimMSD=4.1
+YlimMSD=15.1
 
 ## Read the data file and save it to a dataframe
 path="Results\\"*folder
@@ -41,13 +41,18 @@ gdf = groupby(df,:BlobID,sort=true)
 
 
 # filter out trajectories shorter than 5 sec (12 frames), those with jumps and the outliers
+
+filter=histogram();
 idx=[]   # save IDnumber of good traks
 meandr = [mean(sqrt.((diff(g[!,:x])).^2+(diff(g[!,:y]).^2))) for g in gdf]
+display(histogram!(meandr, bins = 0:0.01:0.3))
+meandr[meandr.<convFact*(sqrt(2)/2)].=NaN
 quartiles = [nanquantile(meandr,0.25), nanquantile(meandr,0.75)]
 IQR=quartiles[2]-quartiles[1] #diff(y)
 lowFen=quartiles[1]-1.5*IQR
 upFen=quartiles[2]+1.5*IQR
-boxplot(meandr)
+#boxplot(meandr)
+display(histogram!(meandr, bins = 0:0.01:0.3))
 for i in 1:length(gdf)
     flag=false
     ltrack=length(gdf[i][!,:x])
@@ -64,6 +69,8 @@ for i in 1:length(gdf)
         end
     end
 end
+
+display(histogram!(meandr[idx], bins = 0:0.01:0.3))
 
 print("n. of tracks = ")
 println(length(gdf))
@@ -187,11 +194,12 @@ display(graphMSD)
 #tauM="tauM"*string(tauMax, base = 10, pad = 2)  #per inserire tauMax nel titolo, sostituito con datetime
 DateTime= Dates.format(now(), "dduyy_HHMM") #Dates.now() #Dates.format(now(), "HH:MM")
 #Dates.format(DateTime, "e, dd u yyyy HH:MM:SS")
+
 png(graphsingMSD, path*"singMSD_"*filename*DateTime)
 png(graphMSD, path*"MSD_"*filename*DateTime)
 png(graphSDtrck, path*"tracks_"*filename*DateTime)
 png(graphSDtrck_dc, path*"tracks_dc_"*filename*DateTime)
-
+png(filter, path*"filter_"*filename*DateTime)
 
 
 #---Save a .csv with the MSD to overlay plots in a second moment
@@ -199,8 +207,8 @@ MSD_df=DataFrame(xMSD=xMSD, MSD=MSD, yerror=dsMSD)
 CSV.write(path*"MSD_"*filename*DateTime*".csv", MSD_df)
 
 #---Save variables------------------------------------
-d=Dict("length_idx"=>length(idx), "velox"=>velox,"tauMax"=>tauMax,"nTracks"=>nTraks, "ltrackmin"=>ltrackmin, "jump"=>jump, "convFact"=>convFact, "framerate"=>framerate, "diamPart"=>diamPart,"idx"=>idx)
-JSON3.write(path*"var_"*filename*DateTime*".json")
+d=Dict("length_idx"=>length(idx), "tauMax"=>tauMax,"nTracks"=>nTraks, "ltrackmin"=>ltrackmin, "jump"=>jump, "convFact"=>convFact, "framerate"=>framerate, "diamPart"=>diamPart,"idx"=>idx)
+JSON3.write(path*"var_"*filename*DateTime*".json", d)
 #--to read the JSON3 file and get back the variables--
 #d2= JSON3.read(read("file.json", String))
 #for (key,value) in d2

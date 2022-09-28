@@ -2,18 +2,18 @@ using CSV, DataFrames, Plots, JSON3, LsqFit, Statistics, Dates #CurveFit
 gr()    #backend dei plot, cerca figure interattive
 
 ##--- Brownian MSD-------------------------------------
-folder="CPN3_J3\\"
-filename1="MSD_J3_brown_m2609Sep22_1433"
+folder1="J11milliQlong\\"
+filename1="MSD_movie05727Sep22_1614"
 ##--- Active MSD---------------------------------------
-#folder="J1\\"
-filename2="MSD_J3_act_m2709Sep22_1433"
+folder2="J11H2O2long\\"
+filename2="MSD_movie06427Sep22_1614" 
 
-path="Results\\"*folder
+path="Results\\"#*folder
 
 ## Read the data file and save it to a dataframe
-path1=path*filename1
+path1=path*folder1*filename1
 dfMSDp = CSV.read(path1*".csv", DataFrame)
-path2=path*filename2
+path2=path*folder2*filename2
 dfMSDa = CSV.read(path2*".csv", DataFrame)
 diamPart=1
 
@@ -24,14 +24,14 @@ Dr=(1.380649e-23*298)/(8π*1e-3*(diamPart*1e-6/2)^3)
 tr=(Dr)^(-1)
 
 #ylims=6.1
-ylimMSD=4.1
-xlimMSD=2
+ylimMSD=15.1
+xlimMSD=6
 lfit=10
 
 ##---Initialize Plot------------------------------------
 graphMSD=plot()
-plot!(dfMSDp[!,:xMSD], dfMSDp[!,:MSD], yerror=dfMSDp[!,:yerror], xlims=(-0.10,xlimMSD), ylims=(-0.10,ylimMSD), marker=true, legend=true, label ="Brownian")
-plot!(dfMSDa[!,:xMSD], dfMSDa[!,:MSD], yerror=dfMSDa[!,:yerror], ylims=(-0.10,ylimMSD), marker=true, legend=true, label="Active")
+plot!(dfMSDp[!,:xMSD], dfMSDp[!,:MSD], yerror=dfMSDp[!,:yerror], xlims=(-0.10,xlimMSD), ylims=(-0.10,ylimMSD), marker=true, legend=:topleft, label ="Brownian")
+plot!(dfMSDa[!,:xMSD], dfMSDa[!,:MSD], yerror=dfMSDa[!,:yerror], ylims=(-0.10,ylimMSD), marker=true, legend=:topleft, label="Active")
 #tr>>tauMax, BALLISTIC regime, fit parabolico inizio, ma abbiamo frame rate troppo bassi. nel caso implementare con  # model(t,MSD,D)=4D.*t.+(V.^2).*(t)^2
 #tr<<tauMax, DIFFUSIVE regime, linear fit, se riesci a farli di circa 1 min poi prendi 1/10 del video invece di 1/5 taumax
 x1=fill(1, lfit)
@@ -61,7 +61,7 @@ fit=LsqFit.curve_fit(model,x,y,p0) #,p0,lower=[0.2*D,0.0],upper=[5*D,10])
 p=fit.param
 yfit(t,D0,V,q)= 4D0.*t.+V.^2*tr.*t.+q
 #plot!(dfMSDp[!,:xMSD],yfit(dfMSDp[!,:xMSD],p[1],p[2],p[3]), legend=true, label="Fit")
-plot!(dfMSDa[!,:xMSD],yfit(dfMSDa[!,:xMSD],p[1],p[2],p[3]), legend=true, label="Fit")
+plot!(dfMSDa[!,:xMSD],yfit(dfMSDa[!,:xMSD],p[1],p[2],p[3]), legend=:topleft, label="Fit")
 xlabel!("Δt [s]");
 ylabel!("MSD [μm²]")
 velox=string(round(p[2],digits=2))
