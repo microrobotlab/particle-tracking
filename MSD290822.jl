@@ -2,8 +2,14 @@ using CSV, Pkg, StatsPlots, DataFrames, CategoricalArrays, Plots, NaNStatistics,
 gr()    #backend dei plot, cerca figure interattive
 
 ##---INNSERT---same as track_particles------------------
-folder="J11H2O2long\\"
-filename="movie064"  #48_dil non fa #traiettorie brutte, ultima g ha un solo punto, viene NaN meandr, mettendo meandr[1:end-1] al calcolo dei quartili va ma non filtra bene
+#folder="J11milliQlong\\"
+#filename="movie057"
+folder="J11H2O2long\\Diluted\\"
+filename1="m43_dd"  #48_dil non fa #traiettorie brutte, ultima g ha un solo punto, viene NaN meandr, mettendo meandr[1:end-1] al calcolo dei quartili va ma non filtra bene
+filename2="m44_dd"
+filename3="m45_dd"
+filename4="m46_dd"
+filename5="m47_dd"
 #----- INSERT FROM FIJI -------
 convFact=50/318 #mid 1000x #1/6.32
 #convFact= 50/255 # mid 800x
@@ -12,15 +18,25 @@ diamPart=1  # in microns
 
 #---parameters for the filtering---
 framerate=12
-ltrackmin=framerate*5 #tauMax> 1 sec 
+ltrackmin=framerate*10 #tauMax> 1 sec 
 jump=2 #max jump allowed between 2 frames
 #------------------------------
-YlimMSD=15.1
+YlimMSD=10.1
 
 ## Read the data file and save it to a dataframe
 path="Results\\"*folder
-df = CSV.read(path*"coordinates_"*filename*".csv", DataFrame)
+df1 = CSV.read(path*"coordinates_"*filename1*".csv", DataFrame)
+df1[!,:BlobID]=df1[!,:BlobID].+1000
+df2 = CSV.read(path*"coordinates_"*filename2*".csv", DataFrame)
+df2[!,:BlobID]=df2[!,:BlobID].+1000
+df3 = CSV.read(path*"coordinates_"*filename3*".csv", DataFrame)
+df3[!,:BlobID]=df3[!,:BlobID].+1000
+df4 = CSV.read(path*"coordinates_"*filename4*".csv", DataFrame)
+df4[!,:BlobID]=df4[!,:BlobID].+1000
+df5 = CSV.read(path*"coordinates_"*filename5*".csv", DataFrame)
+df5[!,:BlobID]=df5[!,:BlobID].+1000
 
+df=vcat(df1,df2,df3,df4,df5,cols=:union)
 # Make x and y columns float and convert pixels to microns
 
 #---on the basis of the entry, calculate tauMax for the parabolic fitting, for other fits tauMax< 1/5 (o 1/10) *length video
@@ -140,7 +156,7 @@ display(graphSDtrck_dc)
 
 function MSDfun(track,tauMax)
     ltrack=length(track[!,:Time])
-    tMax=min(tauMax, ceil(Int, ltrack/10))
+    tMax=min(tauMax, ceil(Int, ltrack/5))
     msd=fill(NaN, tauMax+1)
     msd[1:tMax+1].=0
     for tau in 1:tMax 
