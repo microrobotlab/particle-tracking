@@ -5,8 +5,8 @@ include("save_data.jl")
 
 ##INSERT --- opens the video, creates a iterable stack of frames stored in "vid"
 #folder="J11milliQlong\\Diluted\\"
-folder="PSH2O2\\"
-filename="movie057" # 26 11. poi 45 h2o2 #48 di SiO2+H2O2 e 45 di SiO2 milliQ  non prende i blob
+folder="J9H2O2long\\Nikon\\"
+filename="J9H2O2_V738" # 26 11. poi 45 h2o2 #48 di SiO2+H2O2 e 45 di SiO2 milliQ  non prende i blob
 
 #-------------------------------------------------------------------------------
 
@@ -17,13 +17,24 @@ vid  = VideoIO.openvideo(io)
 img  = first(vid)
 
 #creates a blob tracker with the desired parameters.
+
+#----- For Hirox ---- WITH NIKON MASK IS NOT REQUIRED; COMMENT IT INSIDE bt!!
+#--- AND change blobtracker from 5:11 for Hirox 800x & 1000x to
 mask=trues(1530,2040)
 mask[1300:1530,1700:2040].=false
-bt = BlobTracker(5:11, #array of blob sizes we want to detect --> era 5 e 11
+
+#---- For NIKON :-----
+function preprocessor(storage, img)
+    storage .= Float32.(img)
+    #update!(medbg, storage) # update the background model
+    storage .= abs.(1 .- img)  # You can save some computation by not calculating a new background image every sample
+end
+
+bt = BlobTracker(5:6, #array of blob sizes we want to detect --> era 5 e 11 , tr2 H2O2: 3:1, tr3 cambia noise2 to 15 tr4 noise2 to 20
                 3.0, # σw Dynamics noise std. (kalman filter param)  --> era 3.0
-                10.0,  # σe Measurement noise std. (pixels) (kalman filter param) --> era 10.0
-                mask=mask, #image processing before the detection, not implemented here because unecessary
-                #preprocessor = preprocessor, #image processing before the detection, not implemented here because unecessary
+                15.0,  # σe Measurement noise std. (pixels) (kalman filter param) --> era 10.0 ALZA
+#                mask=mask, #image processing before the detection, not implemented here because unecessary
+                preprocessor = preprocessor, #image processing before the detection, not implemented here because unecessary
                 amplitude_th = 0.008, ## with less, like 0.007, it detects false positives (in the Hirox videos) --> era 0.008
                 correspondence = HungarianCorrespondence(p=0.5, dist_th=4), # dist_th is the number of sigmas away from a predicted location a measurement is accepted.--> era p=0.5, dist_th=4
 )

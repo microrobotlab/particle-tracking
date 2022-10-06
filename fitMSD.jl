@@ -2,11 +2,11 @@ using CSV, DataFrames, Plots, JSON3, LsqFit, Statistics, Dates #CurveFit
 gr()    #backend dei plot, cerca figure interattive
 
 ##--- Brownian MSD-------------------------------------
-folder1="J11milliQlong\\"
-filename1="MSD_movie05727Sep22_1614"
+folder1="J9milliQlong\\"
+filename1="MSD_movie06803Oct22_1134"
 ##--- Active MSD---------------------------------------
-folder2="J11H2O2long\\"
-filename2="MSD_movie06427Sep22_1614" 
+folder2="J9H2O2long\\Diluted\\"
+filename2="MSD_J9_H2O2_tot_03Oct22_1131" 
 
 path="Results\\"#*folder
 
@@ -24,7 +24,7 @@ Dr=(1.380649e-23*298)/(8π*1e-3*(diamPart*1e-6/2)^3)
 tr=(Dr)^(-1)
 
 #ylims=6.1
-ylimMSD=15.1
+ylimMSD=20.1
 xlimMSD=6
 lfit=10
 

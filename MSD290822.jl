@@ -4,12 +4,9 @@ gr()    #backend dei plot, cerca figure interattive
 ##---INNSERT---same as track_particles------------------
 #folder="J11milliQlong\\"
 #filename="movie057"
-folder="J11H2O2long\\Diluted\\"
-filename1="m43_dd"  #48_dil non fa #traiettorie brutte, ultima g ha un solo punto, viene NaN meandr, mettendo meandr[1:end-1] al calcolo dei quartili va ma non filtra bene
-filename2="m44_dd"
-filename3="m45_dd"
-filename4="m46_dd"
-filename5="m47_dd"
+folder="J9H2O2long\\Nikon\\"#Diluted\\"
+filename="J9H2O2_V738"  #48_dil non fa #traiettorie brutte, ultima g ha un solo punto, viene NaN meandr, mettendo meandr[1:end-1] al calcolo dei quartili va ma non filtra bene
+
 #----- INSERT FROM FIJI -------
 convFact=50/318 #mid 1000x #1/6.32
 #convFact= 50/255 # mid 800x
@@ -17,26 +14,16 @@ convFact=50/318 #mid 1000x #1/6.32
 diamPart=1  # in microns
 
 #---parameters for the filtering---
-framerate=12
+framerate=25
 ltrackmin=framerate*10 #tauMax> 1 sec 
 jump=2 #max jump allowed between 2 frames
 #------------------------------
-YlimMSD=10.1
+YlimMSD=20.1
 
 ## Read the data file and save it to a dataframe
 path="Results\\"*folder
-df1 = CSV.read(path*"coordinates_"*filename1*".csv", DataFrame)
-df1[!,:BlobID]=df1[!,:BlobID].+1000
-df2 = CSV.read(path*"coordinates_"*filename2*".csv", DataFrame)
-df2[!,:BlobID]=df2[!,:BlobID].+1000
-df3 = CSV.read(path*"coordinates_"*filename3*".csv", DataFrame)
-df3[!,:BlobID]=df3[!,:BlobID].+1000
-df4 = CSV.read(path*"coordinates_"*filename4*".csv", DataFrame)
-df4[!,:BlobID]=df4[!,:BlobID].+1000
-df5 = CSV.read(path*"coordinates_"*filename5*".csv", DataFrame)
-df5[!,:BlobID]=df5[!,:BlobID].+1000
+df = CSV.read(path*"coordinates_"*filename*".csv", DataFrame)
 
-df=vcat(df1,df2,df3,df4,df5,cols=:union)
 # Make x and y columns float and convert pixels to microns
 
 #---on the basis of the entry, calculate tauMax for the parabolic fitting, for other fits tauMax< 1/5 (o 1/10) *length video
@@ -124,6 +111,10 @@ for i in 1:nTraks
     gdf[i][!,:ydc]=gdf[i][!,:y].-Δy[1:h]
 end
 
+#-------------SAVE dataframe34 with drift correction-----------
+Date_Time= Dates.format(now(), "dduyy_HHMM") #Dates.now() #Dates.format(now(), "HH:MM")
+CSV.write(path*"MSDdriftCorr_"*filename*Date_Time*".csv", df)
+
 
 # Plots a restricted number of track, scaled to zero ---> you may have to change axes limits!!!
 
@@ -208,14 +199,13 @@ display(graphMSD)
 
 #---SAVE WITHOUT the fit-------------------------------
 #tauM="tauM"*string(tauMax, base = 10, pad = 2)  #per inserire tauMax nel titolo, sostituito con datetime
-DateTime= Dates.format(now(), "dduyy_HHMM") #Dates.now() #Dates.format(now(), "HH:MM")
 #Dates.format(DateTime, "e, dd u yyyy HH:MM:SS")
 
-png(graphsingMSD, path*"singMSD_"*filename*DateTime)
-png(graphMSD, path*"MSD_"*filename*DateTime)
-png(graphSDtrck, path*"tracks_"*filename*DateTime)
-png(graphSDtrck_dc, path*"tracks_dc_"*filename*DateTime)
-png(filter, path*"filter_"*filename*DateTime)
+png(graphsingMSD, path*"singMSD_"*filename*Date_Time)
+png(graphMSD, path*"MSD_"*filename*Date_Time)
+png(graphSDtrck, path*"tracks_"*filename*Date_Time)
+png(graphSDtrck_dc, path*"tracks_dc_"*filename*Date_Time)
+png(filter, path*"filter_"*filename*Date_Time)
 
 
 #---Save a .csv with the MSD to overlay plots in a second moment
@@ -224,7 +214,7 @@ CSV.write(path*"MSD_"*filename*DateTime*".csv", MSD_df)
 
 #---Save variables------------------------------------
 d=Dict("length_idx"=>length(idx), "tauMax"=>tauMax,"nTracks"=>nTraks, "ltrackmin"=>ltrackmin, "jump"=>jump, "convFact"=>convFact, "framerate"=>framerate, "diamPart"=>diamPart,"idx"=>idx)
-JSON3.write(path*"var_"*filename*DateTime*".json", d)
+JSON3.write(path*"var_"*filename*Date_Time*".json", d)
 #--to read the JSON3 file and get back the variables--
 #d2= JSON3.read(read("file.json", String))
 #for (key,value) in d2
