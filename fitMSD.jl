@@ -2,13 +2,13 @@ using CSV, DataFrames, Plots, JSON3, LsqFit, Statistics, Dates #CurveFit
 gr()    #backend dei plot, cerca figure interattive
 
 ##--- Brownian MSD-------------------------------------
-folder1="J9milliQlong\\"
-filename1="MSD_movie06803Oct22_1134"
+folder1="J11_PS_MSD\\"
+filename1="MSD_J11_milliq_blk_m46_18Oct22_1734"
 ##--- Active MSD---------------------------------------
-folder2="J9H2O2long\\Diluted\\"
-filename2="MSD_J9_H2O2_tot_03Oct22_1131" 
+folder2="J11_PS_MSD\\"
+filename2="MSD_J11_H2O2_std_m49_18Oct22_1735" 
 
-path="Results\\"#*folder
+path="Results\\Dhruv\\J11_PS\\"#*folder
 
 ## Read the data file and save it to a dataframe
 path1=path*folder1*filename1
@@ -23,9 +23,12 @@ D=(1.380649e-23*298)/(6π*1e-3*(diamPart*1e-6/2))*1e12     #um^2/s
 Dr=(1.380649e-23*298)/(8π*1e-3*(diamPart*1e-6/2)^3)
 tr=(Dr)^(-1)
 
+#cut the final points (whe there are broken trajectories leading to stairs in the MSD plot)
+cut=0
+
 #ylims=6.1
 ylimMSD=20.1
-xlimMSD=6
+xlimMSD=6-cut/12
 lfit=10
 
 ##---Initialize Plot------------------------------------
@@ -36,11 +39,11 @@ plot!(dfMSDa[!,:xMSD], dfMSDa[!,:MSD], yerror=dfMSDa[!,:yerror], ylims=(-0.10,yl
 #tr<<tauMax, DIFFUSIVE regime, linear fit, se riesci a farli di circa 1 min poi prendi 1/10 del video invece di 1/5 taumax
 x1=fill(1, lfit)
 x2=fill(2, lfit)
-prex=[dfMSDp[end-9:end,:xMSD] ; dfMSDa[end-9:end,:xMSD]]
+prex=[dfMSDp[end-9-cut:end-cut,:xMSD] ; dfMSDa[end-9-cut:end-cut,:xMSD]]
 preid=[x1; x2]
 x=[prex preid]
 #x=[dfMSDp[!,:xMSD] x1 ; dfMSDa[!,:xMSD] x2]
-y=[dfMSDp[end-9:end,:MSD]; dfMSDa[end-9:end,:MSD]]
+y=[dfMSDp[end-9-cut:end-cut,:MSD]; dfMSDa[end-9-cut:end-cut,:MSD]]
 #p=zeros(Float64, 3, 1) 
 
 function model(x,p)
@@ -70,8 +73,8 @@ println(velox)
 title!("v diff= "*velox*" μm/s")
 
 display(graphMSD)
-DateTime= Dates.format(now(), "dduyy_HHMM") 
-png(graphMSD, path*"MSDap_"*filename2*DateTime)
+Date_Time= Dates.format(now(), "dduyy_HHMM") 
+png(graphMSD, path*"MSDap_"*filename2*Date_Time)
 
 
 

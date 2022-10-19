@@ -4,17 +4,17 @@ gr()    #backend dei plot, cerca figure interattive
 ##---INNSERT---same as track_particles------------------
 #folder="J11milliQlong\\"
 #filename="movie057"
-folder="J9H2O2long\\Nikon\\"#Diluted\\"
-filename="J9H2O2_V738"  #48_dil non fa #traiettorie brutte, ultima g ha un solo punto, viene NaN meandr, mettendo meandr[1:end-1] al calcolo dei quartili va ma non filtra bene
+folder="Dhruv\\J11_PS\\"
+filename="J11_H2O2_blk_m50"  #48_dil non fa #traiettorie brutte, ultima g ha un solo punto, viene NaN meandr, mettendo meandr[1:end-1] al calcolo dei quartili va ma non filtra bene
 
 #----- INSERT FROM FIJI -------
-convFact=50/318 #mid 1000x #1/6.32
-#convFact= 50/255 # mid 800x
+#convFact=50/318 #mid 1000x #1/6.32
+convFact= 50/255 # mid 800x
 
 diamPart=1  # in microns
 
 #---parameters for the filtering---
-framerate=25
+framerate=12
 ltrackmin=framerate*10 #tauMax> 1 sec 
 jump=2 #max jump allowed between 2 frames
 #------------------------------
@@ -113,7 +113,7 @@ end
 
 #-------------SAVE dataframe34 with drift correction-----------
 Date_Time= Dates.format(now(), "dduyy_HHMM") #Dates.now() #Dates.format(now(), "HH:MM")
-CSV.write(path*"MSDdriftCorr_"*filename*Date_Time*".csv", df)
+CSV.write(path*"MSDdriftCorr_"*filename*"_"*Date_Time*".csv", df)
 
 
 # Plots a restricted number of track, scaled to zero ---> you may have to change axes limits!!!
@@ -210,11 +210,11 @@ png(filter, path*"filter_"*filename*Date_Time)
 
 #---Save a .csv with the MSD to overlay plots in a second moment
 MSD_df=DataFrame(xMSD=xMSD, MSD=MSD, yerror=dsMSD)
-CSV.write(path*"MSD_"*filename*DateTime*".csv", MSD_df)
+CSV.write(path*"MSD_"*filename*"_"*Date_Time*".csv", MSD_df)
 
 #---Save variables------------------------------------
 d=Dict("length_idx"=>length(idx), "tauMax"=>tauMax,"nTracks"=>nTraks, "ltrackmin"=>ltrackmin, "jump"=>jump, "convFact"=>convFact, "framerate"=>framerate, "diamPart"=>diamPart,"idx"=>idx)
-JSON3.write(path*"var_"*filename*Date_Time*".json", d)
+JSON3.write(path*"var_"*filename*"_"*Date_Time*".json", d)
 #--to read the JSON3 file and get back the variables--
 #d2= JSON3.read(read("file.json", String))
 #for (key,value) in d2

@@ -5,8 +5,8 @@ include("save_data.jl")
 
 ##INSERT --- opens the video, creates a iterable stack of frames stored in "vid"
 #folder="J11milliQlong\\Diluted\\"
-folder="J9H2O2long\\Nikon\\"
-filename="J9H2O2_V738" # 26 11. poi 45 h2o2 #48 di SiO2+H2O2 e 45 di SiO2 milliQ  non prende i blob
+folder="Dhruv\\"
+filename="SiO2_H2O2_blk_m70" # 26 11. poi 45 h2o2 #48 di SiO2+H2O2 e 45 di SiO2 milliQ  non prende i blob
 
 #-------------------------------------------------------------------------------
 
@@ -30,12 +30,12 @@ function preprocessor(storage, img)
     storage .= abs.(1 .- img)  # You can save some computation by not calculating a new background image every sample
 end
 
-bt = BlobTracker(5:6, #array of blob sizes we want to detect --> era 5 e 11 , tr2 H2O2: 3:1, tr3 cambia noise2 to 15 tr4 noise2 to 20
+bt = BlobTracker(5:11, #array of blob sizes we want to detect --> era 5 e 11 poer Hirox, tr2 H2O2: 3:1, tr3 cambia noise2 to 15 tr4 noise2 to 20. Per Nikon alla fine 5:6
                 3.0, # σw Dynamics noise std. (kalman filter param)  --> era 3.0
-                15.0,  # σe Measurement noise std. (pixels) (kalman filter param) --> era 10.0 ALZA
-#                mask=mask, #image processing before the detection, not implemented here because unecessary
-                preprocessor = preprocessor, #image processing before the detection, not implemented here because unecessary
-                amplitude_th = 0.008, ## with less, like 0.007, it detects false positives (in the Hirox videos) --> era 0.008
+                10.0,  # σe Measurement noise std. (pixels) (kalman filter param) --> Per Hirox era 10.0, ALZA: Portato a 15.0 per Nikon.
+                mask=mask, #image processing before the detection, not implemented here because unecessary
+#                preprocessor = preprocessor, #image processing before the detection, not implemented here because unecessary
+                amplitude_th = 0.008, ## with less, like 0.007, it detects false positives (in the Hirox videos) --> era 0.008. Mantenuto per Nikon
                 correspondence = HungarianCorrespondence(p=0.5, dist_th=4), # dist_th is the number of sigmas away from a predicted location a measurement is accepted.--> era p=0.5, dist_th=4
 )
 
@@ -57,6 +57,7 @@ draw!(drawimg, measurement_traces, c=RGB(0.5,0,0))
 
 path="C:\\Users\\g.petrucci\\OneDrive - Scuola Superiore Sant'Anna\\tracking_code\\Results\\"*folder
 save(path*"tracking_"*filename*".png", drawimg)
+#save(path*"tracking_"*filename*".svg", drawimg)
 #-----> if we just need the coordinates whitout tracking, use this
 #coords = get_coordinates(bt, vid)
 
