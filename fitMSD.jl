@@ -2,13 +2,13 @@ using CSV, DataFrames, Plots, JSON3, LsqFit, Statistics, Dates #CurveFit
 gr()    #backend dei plot, cerca figure interattive
 
 ##--- Brownian MSD-------------------------------------
-folder1="J11_PS_MSD\\"
+folder1="20221020\\"
 filename1="MSD_J11_milliq_blk_m46_18Oct22_1734"
 ##--- Active MSD---------------------------------------
-folder2="J11_PS_MSD\\"
+folder2="20221020\\"
 filename2="MSD_J11_H2O2_std_m49_18Oct22_1735" 
 
-path="Results\\Dhruv\\J11_PS\\"#*folder
+path="Results\\"#*folder
 
 ## Read the data file and save it to a dataframe
 path1=path*folder1*filename1
