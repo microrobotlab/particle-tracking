@@ -2,13 +2,13 @@ using CSV, DataFrames, Plots, JSON3, LsqFit, Statistics, Dates #CurveFit
 gr()    #backend dei plot, cerca figure interattive
 
 ##--- Brownian MSD-------------------------------------
-folder1="20221020\\"
-filename1="MSD_J11_milliq_blk_m46_18Oct22_1734"
+folder1="J13_milliQ\\"
+filename1="MSD_movie050.avi" #usa prima il 49 e poi il 50.
 ##--- Active MSD---------------------------------------
-folder2="20221020\\"
-filename2="MSD_J11_H2O2_std_m49_18Oct22_1735" 
+folder2="J13_H2O2\\"
+filename2="MSD_movie051.avi" 
 
-path="Results\\"#*folder
+path="Results\\20221107\\"#*folder
 
 ## Read the data file and save it to a dataframe
 path1=path*folder1*filename1
@@ -73,8 +73,8 @@ println(velox)
 title!("v diff= "*velox*" μm/s")
 
 display(graphMSD)
-Date_Time= Dates.format(now(), "dduyy_HHMM") 
-png(graphMSD, path*"MSDap_"*filename2*Date_Time)
+#Date_Time= Dates.format(now(), "dduyy_HHMM") 
+png(graphMSD, path*"MSDap_"*filename2)
 
 
 

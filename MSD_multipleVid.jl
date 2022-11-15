@@ -4,9 +4,9 @@ gr()    #backend dei plot, cerca figure interattive
 ##---INNSERT---same as track_particles------------------
 #folder="J11milliQlong\\"
 #filename="movie057"
-folder="20221020\\"
+folder="20221107\\"
 
-pathORIG="C:\\Users\\g.petrucci\\Scuola Superiore Sant'Anna\\Microscale Robotics Laboratory - General\\GaiaStuff\\Measurements\\Hirox\\20221020\\"
+pathORIG="C:\\Users\\g.petrucci\\Scuola Superiore Sant'Anna\\Microscale Robotics Laboratory - RESEARCH - Research\\self-propelled_particles_fuel\\Measurements\\Hirox\\20221107\\"
 
 list=readdir(pathORIG)
 for i in list[1:end]
