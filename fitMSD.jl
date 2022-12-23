@@ -2,13 +2,13 @@ using CSV, DataFrames, Plots, JSON3, LsqFit, Statistics, Dates #CurveFit
 gr()    #backend dei plot, cerca figure interattive
 
 ##--- Brownian MSD-------------------------------------
-folder1="J13_milliQ\\"
-filename1="MSD_movie050.avi" #usa prima il 49 e poi il 50.
+folder1="J16\\"
+filename1="MSD_movie069.avi" #eventualmente 70 e 71
 ##--- Active MSD---------------------------------------
-folder2="J13_H2O2\\"
-filename2="MSD_movie051.avi" 
+folder2="J16\\"
+filename2="MSD_movie072.avi" #
 
-path="Results\\20221107\\"#*folder
+path="Results\\20221114\\"#*folder
 
 ## Read the data file and save it to a dataframe
 path1=path*folder1*filename1

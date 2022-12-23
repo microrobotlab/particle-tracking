@@ -2,15 +2,14 @@ using BlobTracking, Images, VideoIO, ImageView, FileIO
 using CSV, DataFrames
 include("save_data.jl")
 
-pathORIG="C:\\Users\\g.petrucci\\Scuola Superiore Sant'Anna\\Microscale Robotics Laboratory - RESEARCH - Research\\self-propelled_particles_fuel\\Measurements\\Hirox\\20221107\\"
-
-folderDEST="20221107\\"
+pathORIG="C:\\Users\\g.petrucci\\Scuola Superiore Sant'Anna\\Microscale Robotics Laboratory - RESEARCH - Research\\self-propelled_particles_fuel\\Measurements\\Hirox\\20221114\\J16\\"
+folderDEST="20221114\\J16\\" 
 pathDEST="C:\\Users\\g.petrucci\\OneDrive - Scuola Superiore Sant'Anna\\tracking_code\\Results\\"*folderDEST
 
 ##INSERT --- opens the video, creates a iterable stack of frames stored in "vid"
 #
 list=readdir(pathORIG)
-for i in list[1:end]
+for i in list[8:end]
     filename=i
     pathTOT=pathORIG*filename
     #io   = VideoIO.open(pathTOT)
