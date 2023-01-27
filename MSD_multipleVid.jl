@@ -1,12 +1,12 @@
 using CSV, Pkg, StatsPlots, DataFrames, CategoricalArrays, Plots, NaNStatistics, LsqFit, CurveFit, Statistics, JSON3, FileIO
 gr()    #backend dei plot, cerca figure interattive
 
-##---INNSERT---same as track_particles------------------
-#folder="J11milliQlong\\"
-#filename="movie057"
-folder="20221114\\J16\\"
+##---IT NEEDS TO HAVE ONLY THE VIDEOS IN THE ORIGIN FOLDER; AND ALL OF THEM SHOULD BE AT THE SAME MAGNIFICATION
 
-pathORIG="C:\\Users\\g.petrucci\\Scuola Superiore Sant'Anna\\Microscale Robotics Laboratory - RESEARCH - Research\\self-propelled_particles_fuel\\Measurements\\Hirox\\20221114\\J16\\"
+pathORIG="C:\\Users\\g.petrucci\\Scuola Superiore Sant'Anna\\Microscale Robotics Laboratory - RESEARCH - Research\\self-propelled_particles_fuel\\Measurements\\Nikon\\20221223\\"
+#---FOLDER IN WHICH THE .csv ARE STORED
+folder="3_um\\20221223_Nik\\"
+
 
 list=readdir(pathORIG)
 for i in list[1:end]
@@ -14,16 +14,19 @@ for i in list[1:end]
 
     #----- INSERT FROM FIJI -------
     #convFact=50/318 #mid 1000x #1/6.32
-    convFact= 50/255 # mid 800x
+    #convFact= 50/255 # mid 800x
+    #convFact= 100/ # mid 600x #
+    convFact= 10/82.978 # Nikon
 
-    diamPart=1  # in microns
+
+    diamPart=3  # in microns
 
     #---parameters for the filtering---
-    framerate=12
+    framerate=25
     ltrackmin=framerate*10 #tauMax> 1 sec 
     jump=2 #max jump allowed between 2 frames
     #------------------------------
-    YlimMSD=20.1
+    YlimMSD=5.1
 
     ## Read the data file and save it to a dataframe
     path="Results\\"*folder
@@ -54,7 +57,7 @@ for i in list[1:end]
     idx=[]   # save IDnumber of good traks
     meandr = [mean(sqrt.((diff(g[!,:x])).^2+(diff(g[!,:y]).^2))) for g in gdf]
     display(histogram!(meandr, bins = 0:0.01:0.3))
-    meandr[meandr.<convFact*(sqrt(2)/2)].=NaN
+#    meandr[meandr.<convFact*(sqrt(2)/2)].=NaN
     quartiles = [nanquantile(meandr,0.25), nanquantile(meandr,0.75)]
     IQR=quartiles[2]-quartiles[1] #diff(y)
     lowFen=quartiles[1]-1.5*IQR
