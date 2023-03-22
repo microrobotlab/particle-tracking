@@ -3,20 +3,31 @@ gr()    #backend dei plot, cerca figure interattive
 
 ##---IT NEEDS TO HAVE ONLY THE VIDEOS IN THE ORIGIN FOLDER; AND ALL OF THEM SHOULD BE AT THE SAME MAGNIFICATION
 
-pathORIG="C:\\Users\\g.petrucci\\Scuola Superiore Sant'Anna\\Microscale Robotics Laboratory - RESEARCH - Research\\self-propelled_particles_fuel\\Measurements\\Nikon\\20221223\\"
-#---FOLDER IN WHICH THE .csv ARE STORED
-folder="3_um\\20221223_Nik\\"
+pathORIG="C:\\Users\\g.petrucci\\Scuola Superiore Sant'Anna\\Microscale Robotics Laboratory - RESEARCH - Research\\Data\\NIK_Nikon-phase-contrast\\P01\\20230307_NIK_P01_E3007-J26_GP\\JuliaAnalysis\\1e5x\\" ##RIGIRA CON a giusto!
 
+# pathORIG="C:\\Users\\g.petrucci\\Scuola Superiore Sant'Anna\\Microscale Robotics Laboratory - RESEARCH - Research\\Data\\NIK_Nikon-phase-contrast\\P01\\20230320_NIK_P01_E009-J27_Pt@PS_GP\\"
+# folderDEST="20230320\\" 
+# pathDEST="C:\\Users\\g.petrucci\\OneDrive - Scuola Superiore Sant'Anna\\tracking_code\\Results\\PS_1.1_um\\Pt\\J27"*folderDEST#NOT VALID FOR SOME REASON..
+
+#---FOLDER IN WHICH THE .csv ARE STORED
+# folder="PS_1.1_um\\Pt\\J2720230320\\"
+folder="3_um\\Pt\\20230307_P01_E3007 - J26\\1e5x\\"
+#definition to be added in the name
+ame="NOoutl"
+boxtrack=15
+YlimMSD=10.1
+a=1.5 #for lens 1x or 1.5x
 
 list=readdir(pathORIG)
 for i in list[1:end]
-    filename=i
+    filen=i
+    filename=filen*ame
 
     #----- INSERT FROM FIJI -------
     #convFact=50/318 #mid 1000x #1/6.32
     #convFact= 50/255 # mid 800x
     #convFact= 100/ # mid 600x #
-    convFact= 10/82.978 # Nikon
+    convFact= (10/82.978)/a # Nikon
 
 
     diamPart=3  # in microns
@@ -26,11 +37,10 @@ for i in list[1:end]
     ltrackmin=framerate*10 #tauMax> 1 sec 
     jump=2 #max jump allowed between 2 frames
     #------------------------------
-    YlimMSD=5.1
 
     ## Read the data file and save it to a dataframe
     path="Results\\"*folder
-    df = CSV.read(path*"coordinates_"*filename*".csv", DataFrame)
+    df = CSV.read(path*"coordinates_"*filen*".csv", DataFrame)
 
     # Make x and y columns float and convert pixels to microns
 
@@ -57,7 +67,8 @@ for i in list[1:end]
     idx=[]   # save IDnumber of good traks
     meandr = [mean(sqrt.((diff(g[!,:x])).^2+(diff(g[!,:y]).^2))) for g in gdf]
     display(histogram!(meandr, bins = 0:0.01:0.3))
-#    meandr[meandr.<convFact*(sqrt(2)/2)].=NaN
+#    meandr[meandr.<convFact*(sqrt(2)/2)].=NaN   #cut trajectories that moves less than a tot, NIK multiplied for 0.1 more or less ok, but make it more rigorous,it was like 1px in diagonal, no relation with the diameter, just consider the noise..
+#BETTER: consider the displacement due to particles' diffusivity, between one frame and the other, convert 1 frame to time
     quartiles = [nanquantile(meandr,0.25), nanquantile(meandr,0.75)]
     IQR=quartiles[2]-quartiles[1] #diff(y)
     lowFen=quartiles[1]-1.5*IQR
@@ -68,7 +79,7 @@ for i in list[1:end]
         flag=false
         ltrack=length(gdf[i][!,:x])
         dr=sqrt.((diff(gdf[i][!,:x])).^2+(diff(gdf[i][!,:y]).^2))  #vector with the instant dr of each track
-        if (ltrack>ltrackmin) && (meandr[i]>lowFen && meandr[i]<upFen) #track length> 1 sec + medium displacement between two adiacents point > 1 pixel - filters out still particles (rumore su part che stanno ferme)
+        if (ltrack>ltrackmin) #&& (meandr[i]>lowFen && meandr[i]<upFen) #track length> 1 sec + medium displacement between two adiacents point > 1 pixel - filters out still particles (rumore su part che stanno ferme)
             for n in 1:(ltrack-1)
                 if (dr[n]>jump*diamPart) #max jump allowed between 2 frames x diamPart
                     flag=true
@@ -135,7 +146,7 @@ for i in list[1:end]
         x0i= gdf[i][1,:xdc]
         y0i = gdf[i][1,:ydc]
         ## Add column and fill it with data
-        plot!(graphSDtrck, gdf[i][!,:xdc].-x0i,gdf[i][!,:ydc].-y0i, xlims=(-10.0,10.0), ylims=(-10.0,10.0),legend=false,aspect_ratio = 1,framestyle = :box)         
+        plot!(graphSDtrck, gdf[i][!,:xdc].-x0i,gdf[i][!,:ydc].-y0i, xlims=(-boxtrack,boxtrack), ylims=(-boxtrack,boxtrack),legend=false,aspect_ratio = 1,framestyle = :box)         
     end
 
     display(graphSDtrck)
@@ -155,7 +166,7 @@ for i in list[1:end]
 
     function MSDfun(track,tauMax)
         ltrack=length(track[!,:Time])
-        tMax=min(tauMax, ceil(Int, ltrack/5))
+        tMax=min(tauMax, ceil(Int, ltrack/5))  #5 that was 10, is it rigorous or related to something..?
         msd=fill(NaN, tauMax+1)
         msd[1:tMax+1].=0
         for tau in 1:tMax 

@@ -2,18 +2,19 @@ using BlobTracking, Images, VideoIO, ImageView, FileIO
 using CSV, DataFrames
 include("save_data.jl")
 
+# pathORIG="C:\\Users\\g.petrucci\\Scuola Superiore Sant'Anna\\Microscale Robotics Laboratory - RESEARCH - Research\\Data\\NIK_Nikon-phase-contrast\\P01\\20230307_NIK_P01_E3007-J26_GP\\JuliaAnalysis\\"
+# folderDEST="20230307\\J26\\" 
+# pathDEST="C:\\Users\\g.petrucci\\OneDrive - Scuola Superiore Sant'Anna\\tracking_code\\Results\\3_um\\Pt\\"*folderDEST
 
 ##INSERT --- opens the video, creates a iterable stack of frames stored in "vid"
-#folder="J11milliQlong\\Diluted\\"
-folder="3_um\\20221223_Nik\\"
-filename="VID01074" # 26 11. poi 45 h2o2 #48 di SiO2+H2O2 e 45 di SiO2 milliQ  non prende i blob
+filename="VID001" # NOTES: poi 2, poi capire preprocessor..
 
+pathORIG="C:\\Users\\g.petrucci\\Scuola Superiore Sant'Anna\\Microscale Robotics Laboratory - RESEARCH - Research\\Data\\HRX_Hirox-microscope\\P001\\20230317_HRX_P01_E3007-SiO23um_GP\\"
+folderDEST="20230317\\" 
+pathDEST="C:\\Users\\g.petrucci\\OneDrive - Scuola Superiore Sant'Anna\\tracking_code\\Results\\3_um\\SiO23um\\"*folderDEST
 #-------------------------------------------------------------------------------
 
-#pathV = "..\\tracking_videos\\Results\\" *folder 
-pathV="C:\\Users\\g.petrucci\\Scuola Superiore Sant'Anna\\Microscale Robotics Laboratory - RESEARCH - Research\\self-propelled_particles_fuel\\Measurements\\Nikon\\20221223\\"
-#Path dal PC nuovo, per vecchio sostituisci g.petrucci con petru
-pathTOT=pathV*filename*".avi"
+pathTOT=pathORIG*filename*".avi"
 io   = VideoIO.open(pathTOT)
 vid  = VideoIO.openvideo(io)
 img  = first(vid)
@@ -32,11 +33,11 @@ function preprocessor(storage, img)
     storage .= abs.(1 .- img)  # You can save some computation by not calculating a new background image every sample
 end
 
-bt = BlobTracker(7:11, #array of blob sizes we want to detect --> era 5 e 11 poer Hirox, tr2 H2O2: 3:1, tr3 cambia noise2 to 15 tr4 noise2 to 20. Per Nikon alla fine 5:6
+bt = BlobTracker(7:11, #array of blob sizes we want to detect --> era 5 e 11 per Hirox, tr2 H2O2: 3:1, tr3 cambia noise2 to 15 tr4 noise2 to 20. Per Nikon alla fine 5:6
                 3.0, # σw Dynamics noise std. (kalman filter param)  --> era 3.0
                 10.0,  # σe Measurement noise std. (pixels) (kalman filter param) --> Per Hirox era 10.0, ALZA: Portato a 15.0 per Nikon.
-#                mask=mask, #image processing before the detection, not implemented here because unecessary
-#                preprocessor = preprocessor, #image processing before the detection, not implemented here because unecessary
+                mask=mask, #image processing before the detection, not implemented here because unecessary
+                preprocessor = preprocessor, #image processing before the detection, not implemented here because unecessary
                 amplitude_th = 0.008, ## with less, like 0.007, it detects false positives (in the Hirox videos) --> era 0.008. Mantenuto per Nikon
                 correspondence = HungarianCorrespondence(p=0.5, dist_th=4), # dist_th is the number of sigmas away from a predicted location a measurement is accepted.--> era p=0.5, dist_th=4
 )
@@ -57,8 +58,7 @@ drawimg = RGB.(img)
 draw!(drawimg, traces, c=RGB(0,0,0.5))
 draw!(drawimg, measurement_traces, c=RGB(0.5,0,0))
 
-path="C:\\Users\\g.petrucci\\OneDrive - Scuola Superiore Sant'Anna\\tracking_code\\Results\\"*folder
-save(path*"tracking_"*filename*".png", drawimg)
+save(pathDEST*"tracking_"*filename*".png", drawimg)
 #save(path*"tracking_"*filename*".svg", drawimg)
 #-----> if we just need the coordinates whitout tracking, use this
 #coords = get_coordinates(bt, vid)
@@ -67,6 +67,6 @@ save(path*"tracking_"*filename*".png", drawimg)
 #saves data in a dataframe in .csv file. 4 columns: blob ID, time, x and y for each frame.
 #framerate is the frame rate of the video
 #-----> WRITE the ACTUAL framerate as second entry
-resultfilename=path*"coordinates_"*filename*".csv"
-save_data(result,20,resultfilename)
+resultfilename=pathDEST*"coordinates_"*filename*".csv"
+save_data(result,20,resultfilename) #the secon entry is the framerate, change it iif you want to have the proper time in the excel file
 

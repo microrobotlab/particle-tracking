@@ -1,29 +1,31 @@
 using CSV, Pkg, StatsPlots, DataFrames, CategoricalArrays, Plots, NaNStatistics, LsqFit, CurveFit, Statistics, JSON3, FileIO
 gr()    #backend dei plot, cerca figure interattive
 
-##---IT NEEDS TO HAVE ONLY THE VIDEOS IN THE ORIGIN FOLDER; AND ALL OF THEM SHOULD BE AT THE SAME MAGNIFICATION
-
-pathORIG="C:\\Users\\g.petrucci\\Scuola Superiore Sant'Anna\\Microscale Robotics Laboratory - RESEARCH - Research\\self-propelled_particles_fuel\\Measurements\\Nikon\\20221223\\"
 #---FOLDER IN WHICH THE .csv ARE STORED
-folder="3_um\\20221223_Nik\\"
+folder="3_um\\Pt\\20230307\\J26\\1e5x\\"
+#definition to be added in the name
+boxtrack=10
+YlimMSD=5.1
+lYlimMSD=-0.
+a=1.5 #for lens 1x or 1.5x
 
-    filename="VID01074.AVI"
+#Name of the raw video
+filename="VID02926.AVI"
 
     #----- INSERT FROM FIJI -------
     #convFact=50/318 #mid 1000x #1/6.32
     #convFact= 50/255 # mid 800x
     #convFact= 100/ # mid 600x #
-    convFact= 10/82.978 # Nikon
+    convFact= (10/82.978)/a # Nikon
 
 
     diamPart=3  # in microns
 
     #---parameters for the filtering---
     framerate=25
-    ltrackmin=framerate*10 #tauMax> 1 sec 
-    jump=6 #max jump allowed between 2 frames --> ERA 2
+    ltrackmin=framerate*10 #tauMax> 1 sec #WHY 10? #because taumax ltrack/10 , so to have taumax>1 sec #AGISCI QUA SE HAI SCALINI NELL MSD #ANZI lascialo così per particelle grandi, per cui cioè fai il fit balistico, aumentalo per il fit lineare
+    jump=2 #max jump allowed between 2 frames --> ERA 2
     #------------------------------
-    YlimMSD=20.1
 
     ## Read the data file and save it to a dataframe
     path="Results\\"*folder
@@ -54,7 +56,10 @@ folder="3_um\\20221223_Nik\\"
     idx=[]   # save IDnumber of good traks
     meandr = [nanmean(sqrt.((diff(g[!,:x])).^2+(diff(g[!,:y]).^2))) for g in gdf]
     display(histogram!(meandr, bins = 0:0.0033:0.1))  # ERA (meandr, bins = 0:0.01:0.3), divido tutto per 3..?
+    
     meandr[meandr.<0.1*convFact*(sqrt(2)/2)].=NaN #a che serviva questo??? A escludere le traiettorie che si muovono meno di un tot (1px in diag (in micron), non si rapporta al diametro, considera il rumore) COL NIKON NO, troppoxx
+    #cut trajectories that moves less than a tot, NIK multiplied for 0.1 more or less ok, but make it more rigorous,it was like 1px in diagonal, no relation with the diameter, just consider the noise..
+#BETTER: consider the displacement due to particles' diffusivity, between one frame and the other, convert 1 frame to time
     quartiles = [nanquantile(meandr,0.25), nanquantile(meandr,0.75)]
     IQR=quartiles[2]-quartiles[1] #diff(y)
     lowFen=quartiles[1]-1.5*IQR
@@ -65,7 +70,7 @@ folder="3_um\\20221223_Nik\\"
         flag=false
         ltrack=length(gdf[i][!,:x])
         dr=sqrt.((diff(gdf[i][!,:x])).^2+(diff(gdf[i][!,:y]).^2))  #vector with the instant dr of each track
-        if (ltrack>ltrackmin) && (meandr[i]>lowFen && meandr[i]<upFen) #track length> 1 sec + medium displacement between two adiacents point > 1 pixel - filters out still particles (rumore su part che stanno ferme)
+        if (ltrack>ltrackmin) #&& (meandr[i]>lowFen && meandr[i]<upFen) #track length> 1 sec + medium displacement between two adiacents point > 1 pixel - filters out still particles (rumore su part che stanno ferme)
             for n in 1:(ltrack-1)
                 if (dr[n]>jump*diamPart) #max jump allowed between 2 frames x diamPart
                     flag=true
@@ -132,7 +137,7 @@ folder="3_um\\20221223_Nik\\"
         x0i= gdf[i][1,:xdc]
         y0i = gdf[i][1,:ydc]
         ## Add column and fill it with data
-        plot!(graphSDtrck, gdf[i][!,:xdc].-x0i,gdf[i][!,:ydc].-y0i, xlims=(-10.0,10.0), ylims=(-10.0,10.0),legend=false,aspect_ratio = 1,framestyle = :box)         
+        plot!(graphSDtrck, gdf[i][!,:xdc].-x0i,gdf[i][!,:ydc].-y0i, xlims=(-boxtrack,boxtrack), ylims=(-boxtrack,boxtrack),legend=false,aspect_ratio = 1,framestyle = :box)         
     end
 
     display(graphSDtrck)
@@ -144,7 +149,8 @@ folder="3_um\\20221223_Nik\\"
     for i in idx
         ## Add column and fill it with data
         plot!(graphSDtrck_dc, gdf[i][!,:xdc],gdf[i][!,:ydc], color=:red, legend=false, aspect_ratio = 1,framestyle = :box)         
-        plot!(graphSDtrck_dc, gdf[i][!,:x],gdf[i][!,:y], color=:green, legend=false, aspect_ratio = 1,framestyle = :box)         
+        plot!(graphSDtrck_dc, gdf[i][!,:x],gdf[i][!,:y], color=:green, legend=false, aspect_ratio = 1,framestyle = :box)
+    annotate!(gdf[i][1,:xdc],gdf[i][1,:ydc],i)
     end
 
     display(graphSDtrck_dc)
@@ -152,7 +158,7 @@ folder="3_um\\20221223_Nik\\"
 
     function MSDfun(track,tauMax)
         ltrack=length(track[!,:Time])
-        tMax=min(tauMax, ceil(Int, ltrack/5))
+        tMax=ceil(Int, ltrack/10)    #5 that was 10, is it rigorous or related to something..? #taken from the article Wei Wang(bibbia MSD)
         msd=fill(NaN, tauMax+1)
         msd[1:tMax+1].=0
         for tau in 1:tMax 
@@ -182,8 +188,8 @@ folder="3_um\\20221223_Nik\\"
 
     MSD=vec(nanmean(matrMSD, dims=2))
     dsMSD=vec(nanstd(matrMSD; dims=2))
-    plot!(xMSD,matrMSD, ylims=(-0.10,YlimMSD), legend=false)  #plotta i singoli MSD di ogni traccia
-    plot!(xMSD,MSD, yerror=dsMSD, ylims=(-0.10,YlimMSD), marker=true,legend=false);  #plotta la media
+    plot!(xMSD,matrMSD, ylims=(lYlimMSD,YlimMSD), legend=false)  #plotta i singoli MSD di ogni traccia
+    plot!(xMSD,MSD, yerror=dsMSD, ylims=(lYlimMSD,YlimMSD), marker=true,legend=false);  #plotta la media
     #Layout(xaxis_range=[0, 1], yaxis_range=[0,2])
     xlabel!("Δt [s]");
     ylabel!("MSD [μm²]")
@@ -194,7 +200,7 @@ folder="3_um\\20221223_Nik\\"
 
     #---> Initialize Plot MEDIA MSD
     graphMSD=plot();
-    plot!(xMSD,MSD, yerror=dsMSD, ylims=(-0.10,YlimMSD), marker=true,legend=false);  #plotta la media
+    plot!(xMSD,MSD, yerror=dsMSD, ylims=(lYlimMSD,YlimMSD), marker=true,legend=false);  #plotta la media
     #Layout(xaxis_range=[0, 1], yaxis_range=[0,2])
     xlabel!("Δt [s]");
     ylabel!("MSD [μm²]")

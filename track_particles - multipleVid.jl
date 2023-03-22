@@ -2,14 +2,14 @@ using BlobTracking, Images, VideoIO, ImageView, FileIO
 using CSV, DataFrames
 include("save_data.jl")
 
-pathORIG="C:\\Users\\g.petrucci\\Scuola Superiore Sant'Anna\\Microscale Robotics Laboratory - RESEARCH - Research\\self-propelled_particles_fuel\\Measurements\\Nikon\\20230119\\Gaia\\"
-folderDEST="20221223\\J21\\" 
-pathDEST="C:\\Users\\g.petrucci\\OneDrive - Scuola Superiore Sant'Anna\\tracking_code\\Results\\3_um\\"*folderDEST
+pathORIG="C:\\Users\\g.petrucci\\Scuola Superiore Sant'Anna\\Microscale Robotics Laboratory - RESEARCH - Research\\Data\\NIK_Nikon-phase-contrast\\P01\\20230320_NIK_P01_E009-J27_Pt@PS_GP\\"
+folderDEST="20230320\\" 
+pathDEST="C:\\Users\\g.petrucci\\OneDrive - Scuola Superiore Sant'Anna\\tracking_code\\Results\\PS_1.1_um\\Pt\\J27"*folderDEST
 
 ##INSERT --- opens the video, creates a iterable stack of frames stored in "vid"
 #
 list=readdir(pathORIG)
-for i in list[1:end]
+for i in list[2:end]
     filename=i
     pathTOT=pathORIG*filename
     #io   = VideoIO.open(pathTOT)
@@ -27,14 +27,15 @@ for i in list[1:end]
     function preprocessor(storage, img)
         storage .= Float32.(img)
         #update!(medbg, storage) # update the background model
-        storage .= abs.(img .- mean(img))  # You can save some computation by not calculating a new background image every sample
+    #    storage .= abs.(img .- mean(img))  # You can save some computation by not calculating a new background image every sample
+        storage .= abs.(1 .- img)
     end
 
-    bt = BlobTracker(10:30, #array of blob sizes we want to detect --> era 5 e 11 poer Hirox, tr2 H2O2: 3:1, tr3 cambia noise2 to 15 tr4 noise2 to 20. Per Nikon alla fine 5:6
+    bt = BlobTracker(5:15, #array of blob sizes we want to detect --> era 5 e 11 poer Hirox, 7:11 x 3um Nikon, tr2 H2O2: 3:1, tr3 cambia noise2 to 15 tr4 noise2 to 20. Per Nikon alla fine 5:6
                     3.0, # σw Dynamics noise std. (kalman filter param)  --> era 3.0
                     10.0,  # σe Measurement noise std. (pixels) (kalman filter param) --> Per Hirox era 10.0, ALZA: Portato a 15.0 per Nikon.
-#                    mask=mask, #image processing before the detection, not implemented here because unecessary
-#                    preprocessor = preprocessor, #image processing before the detection, not implemented here because unecessary
+    #                mask=mask, #image processing before the detection, not implemented here because unecessary
+                    preprocessor = preprocessor, #image processing before the detection, not implemented here because unecessary
                     amplitude_th = 0.008, ## with less, like 0.007, it detects false positives (in the Hirox videos) --> era 0.008. Mantenuto per Nikon
                     correspondence = HungarianCorrespondence(p=0.5, dist_th=4), # dist_th is the number of sigmas away from a predicted location a measurement is accepted.--> era p=0.5, dist_th=4
     )
