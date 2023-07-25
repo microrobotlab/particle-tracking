@@ -2,14 +2,14 @@ using BlobTracking, Images, VideoIO, ImageView, FileIO
 using CSV, DataFrames
 include("save_data.jl")
 
-pathORIG="C:\\Users\\g.petrucci\\Scuola Superiore Sant'Anna\\Microscale Robotics Laboratory - RESEARCH - Research\\Data\\NIK_Nikon-phase-contrast\\P01\\20230320_NIK_P01_E009-J27_Pt@PS_GP\\"
-folderDEST="20230320\\" 
-pathDEST="C:\\Users\\g.petrucci\\OneDrive - Scuola Superiore Sant'Anna\\tracking_code\\Results\\PS_1.1_um\\Pt\\J27"*folderDEST
+pathORIG="C:\\Users\\g.petrucci\\Scuola Superiore Sant'Anna\\Microscale Robotics Laboratory - RESEARCH - Research\\Data\\NIK_Nikon-phase-contrast\\P01\\20230526_NIK_P01_E3010 - 1.1um PS J28\\j\\"
+folderDEST="20230526_P01_E3010 - 1.1um PS J28\\" 
+pathDEST="C:\\Users\\g.petrucci\\OneDrive - Scuola Superiore Sant'Anna\\tracking_code\\Results\\PS_1.1_um\\Pt"*folderDEST
 
 ##INSERT --- opens the video, creates a iterable stack of frames stored in "vid"
 #
 list=readdir(pathORIG)
-for i in list[2:end]
+for i in list[1:end]
     filename=i
     pathTOT=pathORIG*filename
     #io   = VideoIO.open(pathTOT)
@@ -31,7 +31,7 @@ for i in list[2:end]
         storage .= abs.(1 .- img)
     end
 
-    bt = BlobTracker(5:15, #array of blob sizes we want to detect --> era 5 e 11 poer Hirox, 7:11 x 3um Nikon, tr2 H2O2: 3:1, tr3 cambia noise2 to 15 tr4 noise2 to 20. Per Nikon alla fine 5:6
+    bt = BlobTracker(5:11, #array of blob sizes we want to detect --> era 5 e 11 per Hirox, 7:11 x 3um Nikon, tr2 H2O2: 3:1, tr3 cambia noise2 to 15 tr4 noise2 to 20. Per Nikon alla fine 5:6
                     3.0, # σw Dynamics noise std. (kalman filter param)  --> era 3.0
                     10.0,  # σe Measurement noise std. (pixels) (kalman filter param) --> Per Hirox era 10.0, ALZA: Portato a 15.0 per Nikon.
     #                mask=mask, #image processing before the detection, not implemented here because unecessary

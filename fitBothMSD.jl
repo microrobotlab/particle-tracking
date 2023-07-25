@@ -1,16 +1,15 @@
-using CSV, DataFrames, Plots, JSON3, LsqFit, Statistics, Dates #CurveFit
+using CSV, DataFrames, Plots, JSON3, LsqFit, Statistics, Dates #, CurveFit
 gr()    #backend dei plot, cerca figure interattive
 
 diamPart=3
 framerate=25
 
 ##--- Brownian MSD-------------------------------------
-folder1="Results\\3_um\\Pt\\20230307\\J26\\1x\\"
-filename1="MSD_VID02924.AVIY10outl" #eventualmente 70 e 71
+folder1="Results\\3_um\\Pt\\20230307_P01_E3007 - J26\\1x\\"
+filename1="MSD_VID02924.AVI" #eventualmente 70 e 71
 ##--- Active MSD---------------------------------------
-folder2="Results\\3_um\\Pt\\20230307\\J26\\1x\\"
-filename2="MSD_VID02918.AVIY10outl" #
-
+folder2="Results\\3_um\\Pt\\20230307_P01_E3007 - J26\\1x\\"
+filename2="MSD_VID02922.AVI" #
 path=""#*folder
 
 ## Read the data file and save it to a dataframe
@@ -93,15 +92,15 @@ elseif tauMax>(10*tr*framerate)+lfit  #tr<<tauMax, DIFFUSIVE regime, linear fit 
     #x=[dfMSDp[!,:xMSD] x1 ; dfMSDa[!,:xMSD] x2]
     y=[dfMSDp[end-lfit+1-cut:end-cut,:MSD]; dfMSDa[end-lfit+1-cut:end-cut,:MSD]]
     #p=zeros(Float64, 3, 1) 
-    model=model_lin
     yfun = y_lin
     p0=[D,0.1, 0.1] #first guess
+    model=model_lin
 
 
 end
 
 #---Then you perform the fitting with those indications---
-fit=curve_fit(model,x,y,p0,lower=[0.9*D,0.0],upper=[1.1*D,Inf]) #,p0,lower=[0.2*D,0.0],upper=[5*D,10])
+fit=LsqFit.curve_fit(model,x,y,p0,lower=[0.9*D,0.0],upper=[1.1*D,Inf]) #,p0,lower=[0.2*D,0.0],upper=[5*D,10])
 p=fit.param
 #yfit(t,D0,V,q)= 4D0.*t.+V.^2*tr.*t.+q
 XMSD=dfMSDa[1:tauMax,:xMSD]

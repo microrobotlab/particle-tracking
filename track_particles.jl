@@ -2,16 +2,13 @@ using BlobTracking, Images, VideoIO, ImageView, FileIO
 using CSV, DataFrames
 include("save_data.jl")
 
-# pathORIG="C:\\Users\\g.petrucci\\Scuola Superiore Sant'Anna\\Microscale Robotics Laboratory - RESEARCH - Research\\Data\\NIK_Nikon-phase-contrast\\P01\\20230307_NIK_P01_E3007-J26_GP\\JuliaAnalysis\\"
-# folderDEST="20230307\\J26\\" 
-# pathDEST="C:\\Users\\g.petrucci\\OneDrive - Scuola Superiore Sant'Anna\\tracking_code\\Results\\3_um\\Pt\\"*folderDEST
-
 ##INSERT --- opens the video, creates a iterable stack of frames stored in "vid"
-filename="VID001" # NOTES: poi 2, poi capire preprocessor..
+filename="20230523_NIK_P04_E017_08_GP_06-VID00057" # NOTES: poi 2, poi capire preprocessor..
 
-pathORIG="C:\\Users\\g.petrucci\\Scuola Superiore Sant'Anna\\Microscale Robotics Laboratory - RESEARCH - Research\\Data\\HRX_Hirox-microscope\\P001\\20230317_HRX_P01_E3007-SiO23um_GP\\"
-folderDEST="20230317\\" 
-pathDEST="C:\\Users\\g.petrucci\\OneDrive - Scuola Superiore Sant'Anna\\tracking_code\\Results\\3_um\\SiO23um\\"*folderDEST
+pathORIG="C:\\Users\\g.petrucci\\Scuola Superiore Sant'Anna\\Microscale Robotics Laboratory - RESEARCH - Research\\Data\\NIK_Nikon-phase-contrast\\P04\\2023\\20230523_NIK_P04_E017_GP\\"
+folderDEST="20230523_NIK_P04_E017_GP - J28\\" 
+pathDEST="C:\\Users\\g.petrucci\\OneDrive - Scuola Superiore Sant'Anna\\tracking_code\\Results\\3_um\\Pt\\GUVs"*folderDEST
+
 #-------------------------------------------------------------------------------
 
 pathTOT=pathORIG*filename*".avi"
@@ -23,8 +20,8 @@ img  = first(vid)
 
 #----- For Hirox ---- WITH NIKON MASK IS NOT REQUIRED; COMMENT IT INSIDE bt!!
 #--- AND change blobtracker from 5:11 for Hirox 800x & 1000x to
-mask=trues(1530,2040)
-mask[1300:1530,1700:2040].=false
+#mask=trues(1530,2040)
+#mask[1300:1530,1700:2040].=false
 
 #---- For NIKON :-----
 function preprocessor(storage, img)
@@ -33,10 +30,10 @@ function preprocessor(storage, img)
     storage .= abs.(1 .- img)  # You can save some computation by not calculating a new background image every sample
 end
 
-bt = BlobTracker(7:11, #array of blob sizes we want to detect --> era 5 e 11 per Hirox, tr2 H2O2: 3:1, tr3 cambia noise2 to 15 tr4 noise2 to 20. Per Nikon alla fine 5:6
+bt = BlobTracker(6:8, #array of blob sizes we want to detect --> era 5 e 11 per Hirox, tr2 H2O2: 3:1, tr3 cambia noise2 to 15 tr4 noise2 to 20. Per Nikon alla fine 5:6
                 3.0, # σw Dynamics noise std. (kalman filter param)  --> era 3.0
                 10.0,  # σe Measurement noise std. (pixels) (kalman filter param) --> Per Hirox era 10.0, ALZA: Portato a 15.0 per Nikon.
-                mask=mask, #image processing before the detection, not implemented here because unecessary
+#                mask=mask, #image processing before the detection, not implemented here because unecessary
                 preprocessor = preprocessor, #image processing before the detection, not implemented here because unecessary
                 amplitude_th = 0.008, ## with less, like 0.007, it detects false positives (in the Hirox videos) --> era 0.008. Mantenuto per Nikon
                 correspondence = HungarianCorrespondence(p=0.5, dist_th=4), # dist_th is the number of sigmas away from a predicted location a measurement is accepted.--> era p=0.5, dist_th=4
@@ -52,6 +49,7 @@ result = track_blobs(bt, vid,
 
 
 #plots trajectories and start-end points for each blob
+
 traces = trace(result, minlife=15) # Filter minimum lifetime of 5
 measurement_traces = tracem(result, minlife=5)
 drawimg = RGB.(img)

@@ -10,7 +10,7 @@ lYlimMSD=-0.
 a=1.5 #for lens 1x or 1.5x
 
 #Name of the raw video
-filename="VID02926.AVI"
+filename="VID02923.AVI"
 
     #----- INSERT FROM FIJI -------
     #convFact=50/318 #mid 1000x #1/6.32
