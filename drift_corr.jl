@@ -6,8 +6,6 @@ using CSV
 
 function drift_corr(df, um_px, framerate, filename)
     
-
-
     # derived information:
     px_um = 1/um_px     # pixel / micron
     max_act_vel = 100   # micron / s
@@ -15,7 +13,6 @@ function drift_corr(df, um_px, framerate, filename)
     min_duration_s = 1.0 # minimum track length, s
     min_duration_frame = floor(Int,min_duration_s*framerate)
     Δt_drift = 10 #s
-
 
     # group and plot tracks
     gdf = groupby(df,:BlobID)
@@ -106,7 +103,7 @@ function drift_corr(df, um_px, framerate, filename)
     end
 
     w = Δt_drift*framerate +1 -mod(Δt_drift*framerate,2) #how much the drift is changing? Calculate over Δt to smooth
-    # w = n_frames÷4+1-mod(n_frames÷4,2) #n.frames/4 ma reso dispari 
+    # w = n_frames÷4+1-mod(n_frames÷4,2) #n.frames/4, but it needs to be odd
     # w = 1
     drift_sm = mymovmean.(drift,w)
     plot!(drift_sm[1],label="drift x sm"); plot!(drift_sm[2],label="drift y sm")
@@ -123,7 +120,7 @@ function drift_corr(df, um_px, framerate, filename)
     end
     display(plt_tracks)
     
-    #---SAVE dataframe34 with drift correction & Plot-----------
+    #---SAVE dataframe with drift correction & Plot-----------
     CSV.write(path*"MSDdriftCorr_"*filename*".csv", df)
     png(plt_tracks, path*"tracks_dc_"*filename)
 
