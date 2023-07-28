@@ -1,7 +1,0 @@
-5:15
-preprocessor con storage .= abs.(1 .- img)
-
-1x non prende quasi nulla, quello meno contrastato proprio zero.
-1.5x prende tanti punti sul bordo.
-
-		=> PROVA A LEVARE IL PREPROCESSOR
