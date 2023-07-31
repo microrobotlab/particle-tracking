@@ -8,12 +8,12 @@ diamPart=3   # mean diameter of the particles to be tracked, in microns
 framerate=25    # fps of the video in analysis
 
 ##--- Brownian MSD ------------------------------------
-folder1="Results\\3_um\\Pt\\20230307_P01_E3007 - J26\\1x\\"
-filename1="MSD_VID02924.AVI" 
+folder1="..."   # name of the folder in wich the CSV file with the results of the tracking of the Brownian inactive particles is stored
+filename1="..."   # name of the CSV file 
 path1=folder1*filename1
 ##--- Active MSD --------------------------------------
-folder2="Results\\3_um\\Pt\\20230307_P01_E3007 - J26\\1x\\"
-filename2="MSD_VID02922.AVI" 
+folder2="..."   # name of the folder in wich the CSV file with the results of the tracking of the active particles is stored
+filename2="..."   # name of the CSV file
 path2=folder2*filename2
 
 ##--- Read the data file and save it to a dataframe ----
@@ -21,10 +21,10 @@ dfMSDp = CSV.read(path1*".csv", DataFrame)
 dfMSDa = CSV.read(path2*".csv", DataFrame)
 
 ##--- Needed parameters --------------------------------
-D=(1.380649e-23*298)/(6π*1e-3*(diamPart*1e-6/2))*1e12       # Diffusive coefficient (um^2/s)
-Dr=(1.380649e-23*298)/(8π*1e-3*(diamPart*1e-6/2)^3)         # Rotational diffusive coefficient
-tr=(Dr)^(-1)                                                # Rotational time scale
-tauMax=min(length(dfMSDp[!,:xMSD]),length(dfMSDa[!,:xMSD])) # Used to choose what kind of fit to perform 
+D=(1.380649e-23*298)/(6π*1e-3*(diamPart*1e-6/2))*1e12       # diffusive coefficient (um^2/s)
+Dr=(1.380649e-23*298)/(8π*1e-3*(diamPart*1e-6/2)^3)         # rotational diffusive coefficient
+tr=(Dr)^(-1)                                                # rotational time scale
+tauMax=min(length(dfMSDp[!,:xMSD]),length(dfMSDa[!,:xMSD])) # used to choose what kind of fit to perform 
 
 cut=0   # cut the final points (when there are broken trajectories leading to stairs in the MSD plot - useful only in the linear regime)
 ylimMSD=12.1
@@ -54,7 +54,7 @@ if  (0.1*tr*framerate)>lfit  # tr>>tauMax, BALLISTIC regime, parabolic fitting (
     y=[dfMSDp[1:lfit,:MSD]; dfMSDa[1:lfit,:MSD]]
     model=model_par
     yfun = y_par
-    p0=[D,0.1] #first guess
+    p0=[D,0.1] # first guess
 
 
 elseif tauMax>(10*tr*framerate)+lfit  #tr<<tauMax, DIFFUSIVE regime, linear fitting
@@ -66,7 +66,7 @@ elseif tauMax>(10*tr*framerate)+lfit  #tr<<tauMax, DIFFUSIVE regime, linear fitt
     y=[dfMSDp[end-lfit+1-cut:end-cut,:MSD]; dfMSDa[end-lfit+1-cut:end-cut,:MSD]]
     model=model_lin
     yfun = y_lin
-    p0=[D,0.1, 0.1] #first guess
+    p0=[D,0.1, 0.1] # first guess
 
 end
 

@@ -2,10 +2,10 @@ using BlobTracking, Images, VideoIO, ImageView, FileIO, CSV, DataFrames
 include("save_data.jl")
 
 ##--- INSERT: opens the video, creates a iterable stack of frames stored in "vid"
-filename="20230523_NIK_P04_E017_08_GP_06-VID00057"
-pathORIG="C:\\Users\\g.petrucci\\Scuola Superiore Sant'Anna\\Microscale Robotics Laboratory - RESEARCH - Research\\Data\\NIK_Nikon-phase-contrast\\P04\\2023\\20230523_NIK_P04_E017_GP\\"
-folderDEST="20230523_NIK_P04_E017_GP - J28\\" 
-pathDEST="C:\\Users\\g.petrucci\\OneDrive - Scuola Superiore Sant'Anna\\tracking_code\\Results\\3_um\\Pt\\GUVs"*folderDEST
+filename="..."   # name of the video to be tracked
+pathORIG="..."   # path of the folder containing the video to be tracked
+folderDEST="..."   # name of the folder where to store the result of the tracking
+pathDEST="..."*folderDEST   # path of the folder where to store the result of the tracking
 
 #-------------------------------------------------------------------------------
 

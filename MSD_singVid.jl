@@ -4,9 +4,8 @@ include("drift_corr.jl")
 include("MSDfun.jl")
 
 ##-- -FOLDER IN WHICH THE .csv ARE STORED -------------
-folder="3_um\\SiO23um\\20230317_P01_E3008 - SiO2_3um_NIK\\1e5x\\"
-## Name of the raw video
-filename="VID03057"
+folder="..."   # name of the folder in wich the CSV file with the results of the tracking is stored
+filename="..."   # name of the raw video
 
 ##--- Made-up INFOs -----------------------------------
 diamPart=3  # mean diameter of the particles to be tracked, in microns
